@@ -1,0 +1,49 @@
+for z in *.zip ; do
+    unzip "$z"
+    echo "$z"
+done
+
+for d in */ ; do
+    cd "$d"
+    cd "mechanisms"
+    mknrndll
+    cd ..
+    cd ..
+done
+for d in neurons/*/ ; do
+    cp "bash-loop.py" "$d/bash-loop.py"
+    cd "$d"
+
+    cd "mechanisms"
+    mknrndll
+    cd ..
+
+    cp "mechanisms/nrnmech.dll" "nrnmech.dll"
+
+    while ! python bash-loop.py "$d"
+    do
+    echo "python failed on import ...retrying..."
+    done
+
+    cd ..
+    cd ..
+done
+
+for d in neurons/*/ ; do
+    cp "bash-loop-axon.py" "$d/bash-loop-axon.py"
+    cd "$d"
+
+    cd "mechanisms"
+    mknrndll
+    cd ..
+
+    cp "mechanisms/nrnmech.dll" "nrnmech.dll"
+
+    while ! python bash-loop-axon.py "$d" -use_axons
+    do
+    echo "python failed on import ...retrying..."
+    done
+
+    cd ..
+    cd ..
+done
