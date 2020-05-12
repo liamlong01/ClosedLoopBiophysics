@@ -18,6 +18,7 @@ start_T = 0
 end_T = 3000
 dt = 0.025
 
+
 def plotstuff(cell, electrode):
     '''plotting'''
     fig = plt.figure(dpi=160)
@@ -25,8 +26,8 @@ def plotstuff(cell, electrode):
     ax1 = fig.add_axes([0.05, 0.1, 0.55, 0.9], frameon=False)
     cax = fig.add_axes([0.05, 0.115, 0.55, 0.015])
 
-    ax1.plot(electrode.y, electrode.z, '.', marker='o', markersize=1, color='k',
-             zorder=0)
+    ax1.plot(electrode.y, electrode.z, '.', marker='o', markersize=1,
+             color='k', zorder=0)
 
     # normalize to min peak
     LFPmin = electrode.LFP.min(axis=1)
@@ -35,7 +36,7 @@ def plotstuff(cell, electrode):
     i = 0
     zips = []
     for x in LFPnorm:
-        zips.append(list(zip(cell.tvec /1000 + electrode.x[i] + 2,
+        zips.append(list(zip(cell.tvec / 1000 + electrode.x[i] + 2,
                              x * 12 + electrode.z[i])))
         i += 1
 
@@ -70,7 +71,7 @@ def plotstuff(cell, electrode):
 
     # plot morphology
     zips = []
-    for y, z in cell.get_pt3d_polygons(projection=('y','z')):
+    for y, z in cell.get_pt3d_polygons(projection=('y', 'z')):
         zips.append(list(zip(y, z)))
     from matplotlib.collections import PolyCollection
     polycol = PolyCollection(zips, edgecolors='none',
@@ -88,7 +89,7 @@ def plotstuff(cell, electrode):
     timeind = (cell.tvec >= 0) & (cell.tvec <= 10)
     xticks = np.arange(10)
     xticklabels = xticks
-    LFPtrace = electrode.LFP[ind,]
+    LFPtrace = electrode.LFP[ind, ]
     vline0 = cell.tvec[cell.somav == cell.somav.max()]
     vline1 = cell.tvec[LFPtrace == LFPtrace.min()]
     vline2 = cell.tvec[LFPtrace == LFPtrace.max()]
@@ -98,11 +99,18 @@ def plotstuff(cell, electrode):
              markeredgecolor='none', markerfacecolor='k')
 
     ax2 = fig.add_axes([0.75, 0.6, 0.2, 0.35], frameon=True)
-    ax2.plot(cell.tvec[timeind], cell.somav[timeind], lw=1, color='k', clip_on=False)
 
-    ax2.vlines(vline0, cell.somav.min(), cell.somav.max(), 'k', 'dashed', lw=0.25)
-    ax2.vlines(vline1, cell.somav.min(), cell.somav.max(), 'k', 'dashdot', lw=0.25)
-    ax2.vlines(vline2, cell.somav.min(), cell.somav.max(), 'k', 'dotted', lw=0.25)
+    ax2.plot(cell.tvec[timeind], cell.somav[timeind],
+             lw=1, color='k', clip_on=False)
+
+    ax2.vlines(vline0, cell.somav.min(),
+               cell.somav.max(), 'k', 'dashed', lw=0.25)
+
+    ax2.vlines(vline1, cell.somav.min(),
+               cell.somav.max(), 'k', 'dashdot', lw=0.25)
+
+    ax2.vlines(vline2, cell.somav.min(),
+               cell.somav.max(), 'k', 'dotted', lw=0.25)
 
     ax2.set_xticks(xticks)
     ax2.set_xticklabels(xticks)
@@ -124,8 +132,10 @@ def plotstuff(cell, electrode):
              transform=ax2.transAxes)
 
     ax3 = fig.add_axes([0.75, 0.1, 0.2, 0.35], frameon=True)
-    ax3.plot(cell.tvec[timeind], LFPtrace[timeind], lw=1, color='k', clip_on=False)
-    ax3.plot(0.5, 0, '*', markersize=5, markeredgecolor='none', markerfacecolor='k')
+    ax3.plot(cell.tvec[timeind], LFPtrace[timeind],
+             lw=1, color='k', clip_on=False)
+    ax3.plot(0.5, 0, '*', markersize=5, markeredgecolor='none',
+             markerfacecolor='k')
 
     ax3.vlines(vline0, LFPtrace.min(), LFPtrace.max(), 'k', 'dashed', lw=0.25)
     ax3.vlines(vline1, LFPtrace.min(), LFPtrace.max(), 'k', 'dashdot', lw=0.25)
@@ -153,6 +163,7 @@ def plotstuff(cell, electrode):
              transform=ax3.transAxes)
 
     return fig
+
 
 def create_stimuli(sec, step_number):
     """Create the stimuli"""
@@ -189,37 +200,33 @@ def create_stimuli(sec, step_number):
     return stimuli
 
 
-def getTemplate(directory = ''):
+def getTemplate(directory=''):
     f = open(directory + 'template.hoc')
     for line in f:
         if 'begintemplate' in line:
             templatename = line.split(' ')[1][:-1]
-            #print(templatename)
+            # print(templatename)
             return templatename
 
 
-
 def gen_template_withaxon(template):
-    axontemplate = 'axon_'+template
+    axontemplate = 'axon_' + template
     shutil.copy(template, axontemplate)
 
     axon_removal_string = '    replace_axon()'
 
-    with  open(axontemplate, mode='w') as new_f:
+    with open(axontemplate, mode='w') as new_f:
         with open(template, mode='r') as old_f:
             for line in old_f.readlines():
-                new_f.write(line.replace(axon_removal_string, '//'+axon_removal_string))
+                new_f.write(line.replace(axon_removal_string,
+                                         ' //' + axon_removal_string))
 
     return axontemplate
-    
-
-
-
 
 
 if __name__ == '__main__':
 
-    neuronfolder = 'neurons/' + sys.argv[1] +'/'
+    neuronfolder = 'neurons/' + sys.argv[1] + '/'
 
 # for retry in range(100):
 #     try:
@@ -235,24 +242,21 @@ if __name__ == '__main__':
 #     if 'nrnmech.dll' in os.listdir(neuronfolder + 'mechanisms'):
 #         shutil.copy(neuronfolder + 'mechanisms/nrnmech.dll', 'nrnmech.dll')
 #     else: #TODO compile neuron mechanisms if file is not found
-#         print("Compiled mechanisms not find. TODO try to compile if this happens")
+#         print("Compiled mechanisms not find. \
+#             TODO try to compile if this happens")
 #         exit(1)
 
     # we need to delay these imports until we get the correct mechanism file
-	#TODO move these imports? doing mechanism loading in bash now
+    # ODO move these imports? doing mechanism loading in bash now
 
     import LFPy
     import neuron
 
-    #cwd = os.getcwd()
-    #os.chdir(neuronfolder)
-
-
+    # cwd = os.getcwd()
+    # os.chdir(neuronfolder)
 
     # delete old sections from NEURON namespace
     LFPy.cell.neuron.h("forall delete_section()")
-
-
 
     neuron.h.load_file("stdrun.hoc")
     neuron.h.load_file("import3d.hoc")
@@ -264,28 +268,29 @@ if __name__ == '__main__':
     neuron.h.load_file(1, "biophysics.hoc")
 
     print('Loading constants')
-    neuron.h.load_file(1,'template.hoc')
+    neuron.h.load_file(1, 'template.hoc')
     neuron.h.load_file('synapses/synapses.hoc')
 
     print("running.....")
 
-    morphologyfile = 'morphology/' + os.listdir('morphology')[0]  # glob('morphology\\*')[0]
+    morphologyfile = 'morphology/' + \
+        os.listdir('morphology')[0]  # glob('morphology\\*')[0]
 
-    templatefile =  'template.hoc'
-    templatename = getTemplate(directory = '')
-    
+    templatefile = 'template.hoc'
+    templatename = getTemplate(directory='')
+
     if '-use_axons' in sys.argv:
         print("creating a template file with the original axons kept")
         templatefile = gen_template_withaxon(templatefile)
 
-    cell = LFPy.TemplateCell(morphology= morphologyfile,
+    cell = LFPy.TemplateCell(morphology=morphologyfile,
                              templatefile=templatefile,
                              templatename=templatename,
                              templateargs=1,
                              tstop=end_T,
                              tstart=start_T,
                              dt=dt,
-                             v_init= -70,
+                             v_init=-70,
                              pt3d=True,
                              delete_sections=True,
                              verbose=True)
@@ -293,27 +298,23 @@ if __name__ == '__main__':
     for sec in cell.somalist:
         somasec = sec
 
-    #stimuli = create_stimuli(somasec, 1)
-
-   
-
+    # stimuli = create_stimuli(somasec, 1)
     res = 10
-
-
 
     xmin = min(cell.xend)
 
+    ymin = int(min(cell.yend) / res) - 5
+    ymax = int(max(cell.yend) / res) + 5
 
-    ymin = int(min(cell.yend)/res) - 5
-    ymax = int(max(cell.yend)/res) + 5
-
-    zmin = int(min(cell.zend)/res) - 5
-    zmax = int(max(cell.zend)/res) + 5
+    zmin = int(min(cell.zend) / res) - 5
+    zmax = int(max(cell.zend) / res) + 5
     """
-    # Generate the grid in xz-plane over which we calculate local field potentials
+    # Generate the grid in xz-plane over
+    # which we calculate local field potentials
     X, Y, Z = np.mgrid[1:2, ymin:ymax:1,   zmin:zmax:1] * res
     X = X - xmin
-    # define parameters for extracellular recording electrode, using optional method
+    # define parameters for extracellular recording electrode,
+    # using optional method
     electrodeParameters = {
         'sigma': 0.3,  # extracellular conductivity
         'x': X.flatten(),  # x,y,z-coordinates of contacts
@@ -335,32 +336,30 @@ if __name__ == '__main__':
     electrode = LFPy.RecExtElectrode(**electrodeParameters)
 
     """
-	
-    print( "simulating....")
+    print("simulating....")
 
     cell.simulate(rec_imem=True)
 
     print("done simulating...")
 
-    os.chdir(home  )
-    if not os.path.exists('results/' ):
+    os.chdir(home)
+    if not os.path.exists('results/'):
         os.makedirs('results/')
     os.chdir(results)
 
-
     print("pickling cell..")
-    neurontype = sys.argv[1].replace('/','_')
+    neurontype = sys.argv[1].replace('/', '_')
 
     if '-use_axons' in sys.argv:
         print("saving cell results with axons ....")
-        neurontype = 'axons_'+neurontype
+        neurontype = 'axons_' + neurontype
 
     try:
-        cell.cellpickler('cellvoltages'+ neurontype)
+        cell.cellpickler('cellvoltages' + neurontype)
     except Exception as e:
         print("Error pickling cell:")
         print(e)
-		
+
     """
     print("pickling electrode..")
     try:
@@ -373,21 +372,17 @@ if __name__ == '__main__':
 
     f.close()
     """
-	
-	
+
     os.chdir(home)
     exit(0)
-  #  os.chdir(home)
+    # os.chdir(home)
 
-   # plt.plot(cell.tvec, cell.somav)
+    # plt.plot(cell.tvec, cell.somav)
 
-    #fig = plt.figure()
+    # fig = plt.figure()
 
-    #plt.plot(cell.tvec, electrode.LFP[100])
-
-
-
-    #plt.show()
+    # plt.plot(cell.tvec, electrode.LFP[100])
+    # plt.show()
 
 
 
