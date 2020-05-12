@@ -198,6 +198,25 @@ def getTemplate(directory = ''):
             return templatename
 
 
+
+def gen_template_withaxon(template):
+    axontemplate = 'axon_'+template
+    shutil.copy(template, axontemplate)
+
+    axon_removal_string = '    replace_axon()'
+
+    with  open(axontemplate, mode='w') as new_f:
+        with open(template, mode='r') as old_f:
+            for line in old_f.readlines():
+                new_f.write(line.replace(axon_removal_string, '//'+axon_removal_string))
+
+    return axontemplate
+    
+
+
+
+
+
 if __name__ == '__main__':
 
     neuronfolder = 'neurons/' + sys.argv[1] +'/'
@@ -251,15 +270,18 @@ if __name__ == '__main__':
     print("running.....")
 
     morphologyfile = 'morphology/' + os.listdir('morphology')[0]  # glob('morphology\\*')[0]
-    
+
+    templatefile =  'template.hoc'
     templatename = getTemplate(directory = '')
     
-
+    if '-use_axons' in sys.argv:
+        print("creating a template file with the original axons kept")
+        templatefile = gen_template_withaxon(templatefile)
 
     cell = LFPy.TemplateCell(morphology= morphologyfile,
-                             templatefile='template.hoc',
+                             templatefile=templatefile,
                              templatename=templatename,
-                             templateargs=0,
+                             templateargs=1,
                              tstop=end_T,
                              tstart=start_T,
                              dt=dt,
@@ -271,9 +293,9 @@ if __name__ == '__main__':
     for sec in cell.somalist:
         somasec = sec
 
-    stimuli = create_stimuli(somasec, 1)
+    #stimuli = create_stimuli(somasec, 1)
 
-
+   
 
     res = 10
 
@@ -327,9 +349,14 @@ if __name__ == '__main__':
 
 
     print("pickling cell..")
-    neurontype = sys.argv[1].replace('/','')
+    neurontype = sys.argv[1].replace('/','_')
+
+    if '-use_axons' in sys.argv:
+        print("saving cell results with axons ....")
+        neurontype = 'axons_'+neurontype
+
     try:
-        cell.cellpickler('cellvoltages_'+ neurontype)
+        cell.cellpickler('cellvoltages'+ neurontype)
     except Exception as e:
         print("Error pickling cell:")
         print(e)
