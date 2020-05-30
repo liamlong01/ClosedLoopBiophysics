@@ -1,5 +1,4 @@
-
-import LFPy
+import LFPY
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
@@ -79,7 +78,7 @@ def debug_plots(cell, electrode, cellsoma=None, electrodeLFP=None):
         print("_*_*_*_*_ ELEC LFP HERE _*_*_*_*_*_*_*__")
         """
         plt.figure()
-        plt.matshow(electrode.LFP)
+        plt.matshow(ele`ctrode.LFP)
         plt.colorbar()
         plt.axis('tight')
         """
@@ -109,18 +108,23 @@ def animate_spike(spike, shape):
 
     update_func = lambda frame, spike=spike, shape=shape, im=im, ln=ln: \
                                                update(frame, spike, shape, im, ln)
+    
+
+    # Set up formatting for the movie files
+    Writer = animation.writers['ffmpeg']
+    writer = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
 
     anim = animation.FuncAnimation(fig1, update_func, init_func = lambda : update_func(0),
                                frames=500, interval=5, blit=True)
 
-    #anim.save('basic_animation.mp4', fps=30, extra_args=['-vcodec', 'libx264'])
+    anim.save('basic_animation.mp4', writer=writer)
 
     plt.show()
 
 
 def main():
-    celltoload = "L23_PC_cADpyr229_1_"
-    directory = "E:/results/cellvoltagesaxons_neurons_"
+    celltoload = "L4_LBC_dSTUT214_5"
+    directory = "E:/results/cellvoltages_neurons"
 
     cell = loadcell(celltoload, directory)
 
@@ -133,7 +137,7 @@ def main():
     shape = Y.shape[1:]
 
     spike = getspike_basic(electrode.LFP)
-    #animate_spike(spike, shape)
+    animate_spike(spike, shape)
 
     return cell, electrode, spike
 
