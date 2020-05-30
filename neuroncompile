@@ -14,13 +14,9 @@ for d in neurons/*/ ; do
     cp "bash-loop.py" "$d/bash-loop.py"
     cd "$d"
 
-    cd "mechanisms"
-    mknrndll
-    cd ..
+    nrnivmodl ./mechanisms
 
-    cp "mechanisms/nrnmech.dll" "nrnmech.dll"
-
-    while ! python bash-loop.py "$d"
+    while ! python bash-loop.py "$d" -use_axons
     do
     echo "python failed on import ...retrying..."
     done

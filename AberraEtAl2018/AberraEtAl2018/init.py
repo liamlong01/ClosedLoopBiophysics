@@ -1,3 +1,31 @@
+"""
+This is a re-implementation of the axon models preseneted in:
+
+Aberra AS, Peterchev AV, Grill WM (2018) Biophysically realistic neuron models 
+for simulation of cortical stimulation. J Neural Eng 15:066023 
+
+This a near exact python port of the original hoc code found here:
+https://senselab.med.yale.edu/modeldb/ShowModel?model=241165
+
+Reasons to make this that I am not a hoc expert and I wanted access to these models in a way that 
+allowed me to be able to modify them flexibly in order to integrate with other libraries.
+
+As an exercise porting this algorithm was also valuable in learning how to use the python-hoc NEURON interface.
+
+
+Huge thanks to the authors of the original code and methods as all ideas here are theirs.
+This is mostly just a change from hoc syntax to python syntax for many functions
+
+
+Author of original source code: Aman Aberra
+
+Author of python port: Liam Long
+For questions specific to port Contact: liam.long@mail.utoronto.ca
+
+For questions on the neuroscience or algorithm please consult paper cited above
+"""
+
+
 import os
 import pdb
 import sys
@@ -372,55 +400,65 @@ class cellChooser():
             h("forall delete_section()")
             self.get_cell()
             if myelinate_ax:
-                for sec in h.allsec():  
-                    # print("Inserting xtra into {}".format(h.secname(sec=sec)))
-
-                    sec.insert('xtra')
-                    sec.insert('extracellular')
-
-
-                # Scaling
-                # scale_axon_diameter = 1.322 # TODO figure how to set this paramter for now default in Aberra code
-                # self.caller.editMorphology.scale_diam2(scale_axon_diameter, self.caller.cellChooser.cell.axonal)
-
-
-                self.caller.interpCoordinates.getSecRefs()
-
-                meth1cells = h.Vector()
-                meth1cells.append(6, 8, 20, 21, 22, 25)
-
-                if not meth1cells.contains(cell_id):
-                    self.main_ax_list = self.get_main_ax2()
-                    print("got main_ax 2")
-                else:
-                    self.main_ax_list = self.get_main_ax()
-
-
-
-                self.caller.editMorphology.myelinate_axon(self.caller.cellChooser.cell.axonal)
-                numComp = 0
-
-                for sec in h.allsec():
-                    print(sec, ".nseg: ", sec.nseg)
-                    sec.insert("xtra")
-                    sec.insert("extracellular")
-                    numComp = sec.nseg + numComp
-
-
-                print("Inserted xtra and extracellular in all {} compartments\n".format(numComp))
-                self.setpointers()
-            
-                if not meth1cells.contains(cell_id):
-                    self.main_ax_list = self.get_main_ax2()
-                    print("got main_ax 2")
-                else:
-                    self.main_ax_list = self.get_main_ax()
+                self.add_axons(cell_id=cell_id)
             else:
                 numComp = 0
                 for sec in h.allsec():
                     numComp += sec.nseg
+                
 
         print("cell loaded")
+
+
+    def add_axons(self, cell_id = 16):
+        print("+++++++++++++++++++++++++")
+        print(self.cell)
+        for sec in h.allsec():  
+             # print("Inserting xtra into {}".format(h.secname(sec=sec)))
+
+            sec.insert('xtra')
+            sec.insert('extracellular')
+
+
+        # Scaling
+        # scale_axon_diameter = 1.322 # TODO figure how to set this paramter for now default in Aberra code
+        # self.caller.editMorphology.scale_diam2(scale_axon_diameter, self.caller.cellChooser.cell.axonal)
+
+
+        self.caller.interpCoordinates.getSecRefs()
+
+        meth1cells = h.Vector()
+        meth1cells.append(6, 8, 20, 21, 22, 25)
+        
+        # TODO find a way to streamline this without cellids? 
+        # for now defaults to ax2 as used for most cells in AberraetAl2018 original code
+        if not meth1cells.contains(cell_id):
+            self.main_ax_list = self.get_main_ax2()
+            print("got main_ax 2")
+        else:
+            self.main_ax_list = self.get_main_ax()
+
+
+
+        self.caller.editMorphology.myelinate_axon(self.caller.cellChooser.cell.axonal)
+        numComp = 0
+
+        for sec in h.allsec():
+            print(sec, ".nseg: ", sec.nseg)
+            sec.insert("xtra")
+            sec.insert("extracellular")
+            numComp = sec.nseg + numComp
+
+
+        print("Inserted xtra and extracellular in all {} compartments\n".format(numComp))
+        self.setpointers()
+    
+        if not meth1cells.contains(cell_id):
+            self.main_ax_list = self.get_main_ax2()
+            print("got main_ax 2")
+        else:
+            self.main_ax_list = self.get_main_ax()
+            
 
 
 
@@ -472,8 +510,10 @@ class cellChooser():
         template = getattr(neuron.h, templatename)
         self.cell = template(0)
 
-
-
+    def getLoadedTemplate(self, templatename=None):
+        self.cell = getattr(h, templatename)[0]
+        print("+++++++++++++++++++++++++")
+        print(self.cell)
 
     def get_main_ax2(self):
         main_ax = h.SectionList()

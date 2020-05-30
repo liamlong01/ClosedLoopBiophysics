@@ -4,6 +4,8 @@ import shutil
 import os
 import run
 import pickle
+import pdb
+import aberraAxon # TODO get a better name
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -252,8 +254,8 @@ if __name__ == '__main__':
     import LFPy
     import neuron
 
-    # cwd = os.getcwd()
-    # os.chdir(neuronfolder)
+    cwd = os.getcwd()
+    os.chdir(neuronfolder)
 
     # delete old sections from NEURON namespace
     LFPy.cell.neuron.h("forall delete_section()")
@@ -268,7 +270,7 @@ if __name__ == '__main__':
     neuron.h.load_file(1, "biophysics.hoc")
 
     print('Loading constants')
-    neuron.h.load_file(1, 'template.hoc')
+    #neuron.h.load_file(1, 'template.hoc')
     neuron.h.load_file('synapses/synapses.hoc')
 
     print("running.....")
@@ -283,18 +285,30 @@ if __name__ == '__main__':
         print("creating a template file with the original axons kept")
         templatefile = gen_template_withaxon(templatefile)
 
+
+
+    axon_editor = aberraAxon.initialize()
+    print("initialized....")
+
+    funcs = [axon_editor.cellChooser.getLoadedTemplate, axon_editor.cellChooser.add_axons]
+    fargs = [{'templatename': templatename}, {}]
     cell = LFPy.TemplateCell(morphology=morphologyfile,
                              templatefile=templatefile,
                              templatename=templatename,
-                             templateargs=1,
+                             templateargs=0,
                              tstop=end_T,
                              tstart=start_T,
                              dt=dt,
                              v_init=-70,
                              pt3d=True,
+                             extracellular=True,
                              delete_sections=True,
+                             custom_fun=funcs,
+                             custom_fun_args=fargs,
                              verbose=True)
 
+    
+    print("LFPy cell ready ")
     for sec in cell.somalist:
         somasec = sec
 
@@ -336,6 +350,8 @@ if __name__ == '__main__':
     electrode = LFPy.RecExtElectrode(**electrodeParameters)
 
     """
+    pdb.set_trace()
+
     print("simulating....")
 
     cell.simulate(rec_imem=True)
@@ -383,15 +399,4 @@ if __name__ == '__main__':
 
     # plt.plot(cell.tvec, electrode.LFP[100])
     # plt.show()
-
-
-
-
-
-
-
-
-
-
-
 
