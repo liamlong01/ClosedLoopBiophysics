@@ -1,7 +1,14 @@
-import neuron # this currently has just one use (n3d -x3d etc)  
+"""
+A remake of LFPy library with a limited but more focused feature set
+
+Dependencies:
+ lfpcalc.py from the original LFPy package
+"""
+
+import neuron  # this currently has just one use (n3d -x3d etc)
 # TODO remove neuron import at some point with slight refactoring
 
-import sys 
+import sys
 import pdb
 import numpy as np
 from aberraAxon import MyelinatedCell
@@ -9,6 +16,8 @@ from aberraAxon import MyelinatedCell
 import lfpcalc
 import matplotlib.pyplot as plt
 import pickle
+
+
 class CellData():
 
     """
@@ -29,7 +38,7 @@ class CellData():
 
         This program is distributed in the hope that it will be useful,
         but WITHOUT ANY WARRANTY; without even the implied warranty of
-        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        MERCHANTABILdITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
         GNU General Public License for more detail
         """
         self.imem = None
@@ -93,23 +102,22 @@ class CellData():
                 segx1 = (segx + gsen2).round(decimals=6)
 
                 # fill tors with interpolated coordinates of start and end points
-                self.xstart[counter:counter+nseg] = np.interp(segx0, L, x)
-                self.xend[counter:counter+nseg] = np.interp(segx1, L, x)
+                self.xstart[counter:counter + nseg] = np.interp(segx0, L, x)
+                self.xend[counter:counter + nseg] = np.interp(segx1, L, x)
 
-                self.ystart[counter:counter+nseg] = np.interp(segx0, L, y)
-                self.yend[counter:counter+nseg] = np.interp(segx1, L, y)
+                self.ystart[counter:counter + nseg] = np.interp(segx0, L, y)
+                self.yend[counter:counter + nseg] = np.interp(segx1, L, y)
 
-                self.zstart[counter:counter+nseg] = np.interp(segx0, L, z)
-                self.zend[counter:counter+nseg] = np.interp(segx1, L, z)
+                self.zstart[counter:counter + nseg] = np.interp(segx0, L, z)
+                self.zend[counter:counter + nseg] = np.interp(segx1, L, z)
 
-                #fill in values area, diam, length
+                # fill in values area, diam, length
                 for i, seg in enumerate(sec):
                     self.area[counter] = neuron.h.area(seg.x)
                     self.diam[counter] = seg.diam
-                    self.length[counter] = sec.L/nseg
+                    self.length[counter] = sec.L / nseg
 
                     counter += 1
-        
 
 
 class basicsim():
@@ -118,8 +126,7 @@ class basicsim():
     # same for y
     # same for z
 
-    #xzy start/END IN CELL._REAL_POSITIONS - NEEDS REL_START REL_END and somapos
-
+    # xzy start/END IN CELL._REAL_POSITIONS - NEEDS REL_START REL_END and somapos
 
     # x,y,z coordinate
     # sigma
@@ -129,7 +136,7 @@ class basicsim():
         self.celldata = celldata
 
     def sim(self, mcell):
-        cell= mcell.cell
+        cell = mcell.cell
         # stimuli = self.create_stimuli(cell, 3)
 
         recordings = {}
@@ -143,71 +150,64 @@ class basicsim():
         recordings['soma(0.5)'].record(cell.soma[0](0.5)._ref_v, 0.1)
         # recordings['isoma(0.5)'].record(cell.soma[0](0.5)._ref_i_membrane, 0.1)
 
-        neuron.h.tstop = 500
+        neuron.h.tstop = 2000
         # create_stimuli(init.CellLoader.cell, 3)
 
-        
         # assert(sys.getrefcount(stimuli) > 1)
         memireclist = neuron.h.List()
         for sec in mcell.sections:
             for seg in sec:
-                
+
                 memirec = neuron.h.Vector()
                 memirec.record(seg._ref_i_membrane, .1)
                 memireclist.append(memirec)
 
-    
-
-
         print('Disabling variable timestep integration')
         neuron.h.cvode_active(0)
-        pdb.set_trace()
+
         neuron.h.finitialize(-65)
         print("finitialize")
         neuron.h.fcurrent()
         print('Running for %f ms' % neuron.h.tstop)
-        
 
         counter = 0
 
         neuron.h.t = 0
         interval = 1000
         while neuron.h.t < neuron.h.tstop:
-            
+
             neuron.h.fadvance()
             if counter == interval:
-                
-                print(neuron.h.t,cell.soma[0](0.5)._ref_v[0], cell.soma[0](0.5)._ref_i_membrane[0])
+
+                print(neuron.h.t, cell.soma[0](
+                    0.5)._ref_v[0], cell.soma[0](0.5)._ref_i_membrane[0])
                 counter = 0
-           
+
                 lfps = np.matmul(self.mapping.T, np.array(memireclist))
-                pdb.set_trace()
+               
                 plt.clf()
-                plt.subplot(2,1,1)
-                plt.imshow(lfps[:,-1].reshape([10,100]))
-                plt.subplot(2,1,2)
+                plt.subplot(2, 1, 1)
+                plt.imshow(lfps[:, -1].reshape([10, 100]))
+                plt.subplot(2, 1, 2)
                 plt.plot(recordings['time'], recordings['soma(0.5)'])
                 plt.pause(0.05)
 
 
-            counter+=1
-        
+            counter += 1
+
         self.celldata.imem = np.array(memireclist)
-
-
 
         time = np.array(recordings['time'])
         soma_voltage = np.array(recordings['soma(0.5)'])
 
-
         soma_voltage_filename = 'soma_voltage_step.dat'
 
         np.savetxt(
-                soma_voltage_filename,
-                np.transpose(
-                   np.vstack((
-                        time,
-                        soma_voltage))))
+            soma_voltage_filename,
+            np.transpose(
+                np.vstack((
+                    time,
+                    soma_voltage))))
 
         print('Soma voltage for step saved to: %s'
               % soma_voltage_filename)
@@ -215,7 +215,6 @@ class basicsim():
         # import matplotlib.pyplot as plt
         plt.plot(recordings['time'], recordings['soma(0.5)'])
         plt.show()
-
 
     def create_stimuli(self, cell, step_number):
         """Create the stimuli"""
@@ -227,7 +226,8 @@ class basicsim():
 
         with open('current_amps.dat', 'r') as current_amps_file:
             first_line = current_amps_file.read().split('\n')[0].strip()
-            hyp_amp, step_amp[0], step_amp[1], step_amp[2] = first_line.split(' ')
+            hyp_amp, step_amp[0], step_amp[1], step_amp[2] = first_line.split(
+                ' ')
 
         iclamp = neuron.h.IClamp(0.5, sec=cell.soma[0])
         iclamp.delay = 700
@@ -254,7 +254,7 @@ class basicsim():
 
 if __name__ == '__main__':
     mcell = MyelinatedCell()
-    mcell.loadcell(16, myelinate_ax  = True)
+    mcell.loadcell(16, myelinate_ax=True)
     celld = CellData(mcell)
     sim = basicsim(celld)
     res = 10
@@ -271,16 +271,17 @@ if __name__ == '__main__':
     X = X.flatten()
     Y = Y.flatten()
     Z = Z.flatten()
-    
+
     sim.mapping = np.zeros([celld.totseg, X.shape[0]])
 
-    for i, (x,y,z) in enumerate(zip(X,Y,Z)):
+    for i, (x, y, z) in enumerate(zip(X, Y, Z)):
         # print(i,x,y,z)
-        sim.mapping[:, i] = lfpcalc.calc_lfp_linesource(celld, x, y, z, 0.3, celld.diam)
+        sim.mapping[:, i] = lfpcalc.calc_lfp_linesource(
+            celld, x, y, z, 0.3, celld.diam)
         # print(x,y,z, mapping.shape)
 
     sim.sim(mcell)
 
-    pdb.set_trace()
+
     with open('testpickle.celldata', 'wb') as pfile:
-        pickle.dump(celld,pfile)
+        pickle.dump(celld, pfile)
