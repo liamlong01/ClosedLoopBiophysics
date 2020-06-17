@@ -17,14 +17,34 @@ import lfpcalc
 import matplotlib.pyplot as plt
 import pickle
 
-
 class CellData():
 
     """
     Contains all relevant cell data in a picklable data format
     """
 
-    def __init__(self, cell):
+    def shift(self, x, y,z ):
+        self.data['xstart'] += x 
+        self.data['xend'] += x 
+        self.data['ystart'] += y
+        self.data['yend'] += y 
+        self.data['zstart'] += z 
+        self.data['zend'] += z 
+
+
+    def __iter__():
+        self.idx = 0
+        self.high = len(self.xstart)
+        return self
+
+    def __next__():
+        output = self.data[self.idx]
+        self.idx+=1
+        return output
+
+         
+
+    def __init__(self, cell, hocObj):
         """
         This is adapted directly from the
         run_simulation._collect_geometry_neuron
@@ -51,26 +71,18 @@ class CellData():
             for sec in cell.sections:
                 self.totseg += sec.nseg
 
-        self.area = np.zeros(self.totseg)
-        self.diam = np.zeros(self.totseg)
-        self.length = np.zeros(self.totseg)
+        # using a structured array
+        dtype = {
+        'names': ('xstart','xend','ystart', 'yend', 'zstart','zend', 'area', 'diam', 'length'),
+        'formats': (float, float,  float,   float,   float,   float,  float,  float,  float)
+        }
 
-        self.xstart = np.zeros(self.totseg)
-        self.xend = np.zeros(self.totseg)
-        self.ystart = np.zeros(self.totseg)
-        self.yend = np.zeros(self.totseg)
-        self.zstart = np.zeros(self.totseg)
-        self.zend = np.zeros(self.totseg)
-
-        self.x = np.zeros(self.totseg)
-        self.y = np.zeros(self.totseg)
-        self.z = np.zeros(self.totseg)
-
+        self.data = np.zeros(self.totseg, dtype=dtype)
         counter = 0
 
         for sec in cell.sections:
 
-            n3d = int(neuron.h.n3d(sec=sec))
+            n3d = int(hocObj.n3d(sec=sec))
             nseg = sec.nseg
             gsen2 = 1. / 2 / nseg
             if n3d:
@@ -79,10 +91,10 @@ class CellData():
                 y = np.zeros(n3d)
                 z = np.zeros(n3d)
                 for i in range(n3d):
-                    L[i] = neuron.h.arc3d(i)
-                    x[i] = neuron.h.x3d(i)
-                    y[i] = neuron.h.y3d(i)
-                    z[i] = neuron.h.z3d(i)
+                    L[i] = hocObj.arc3d(i)
+                    x[i] = hocObj.x3d(i)
+                    y[i] = hocObj.y3d(i)
+                    z[i] = hocObj.z3d(i)
                 L /= sec.L
 
                 segx = np.zeros(nseg)
@@ -102,22 +114,38 @@ class CellData():
                 segx1 = (segx + gsen2).round(decimals=6)
 
                 # fill tors with interpolated coordinates of start and end points
-                self.xstart[counter:counter + nseg] = np.interp(segx0, L, x)
-                self.xend[counter:counter + nseg] = np.interp(segx1, L, x)
+                self.data['xstart'][counter:counter + nseg] = np.interp(segx0, L, x)
+                self.data['xend'][counter:counter + nseg] = np.interp(segx1, L, x)
 
-                self.ystart[counter:counter + nseg] = np.interp(segx0, L, y)
-                self.yend[counter:counter + nseg] = np.interp(segx1, L, y)
+                self.data['ystart'][counter:counter + nseg] = np.interp(segx0, L, y)
+                self.data['yend'][counter:counter + nseg] = np.interp(segx1, L, y)
 
-                self.zstart[counter:counter + nseg] = np.interp(segx0, L, z)
-                self.zend[counter:counter + nseg] = np.interp(segx1, L, z)
+                self.data['zstart'][counter:counter + nseg] = np.interp(segx0, L, z)
+                self.data['zend'][counter:counter + nseg] = np.interp(segx1, L, z)
 
                 # fill in values area, diam, length
                 for i, seg in enumerate(sec):
-                    self.area[counter] = neuron.h.area(seg.x)
-                    self.diam[counter] = seg.diam
-                    self.length[counter] = sec.L / nseg
+                    self.data['area'][counter] = hocObj.area(seg.x)
+                    self.data['diam'][counter] = seg.diam
+                    self.data['length'][counter] = sec.L / nseg
 
                     counter += 1
+
+        # we need these references to have exactly thes names to be compatible with LFP libraries
+        # but is also convenient to have the structured array format
+        self.xstart = self.data['xstart']
+        self.xend = self.data['xend']
+
+        self.ystart = self.data['xstart']
+        self.yend = self.data['xstart']
+
+        self.zstart = self.data['xstart']
+        self.zend = self.data['xstart']
+
+        self.area = self.data['xstart']
+        self.diam = self.data['xstart']
+        self.length = self.data['xstart']
+
 
 
 class basicsim():
@@ -132,66 +160,89 @@ class basicsim():
     # sigma
     # r_limit
 
-    def __init__(self, celldata):
+    def __init__(self, celldata, hocObj, title='A cell soma plot'):
         self.celldata = celldata
+        self. hocObj = hocObj
 
-    def sim(self, mcell):
+        self.title = title
+        self.mapping = None
+
+    def sim(self, mcell, shape, stepFunction = None):
+        
         cell = mcell.cell
         # stimuli = self.create_stimuli(cell, 3)
 
         recordings = {}
 
-        recordings['time'] = neuron.h.Vector()
-        recordings['soma(0.5)'] = neuron.h.Vector()
-        # recordings['isoma(0.5)'] = neuron.h.Vector()
+        recordings['time'] = self.hocObj.Vector()
+        recordings['soma(0.5)'] = self.hocObj.Vector()
+        # recordings['isoma(0.5)'] = self.hocObj.Vector()
 
-        recordings['time'].record(neuron.h._ref_t, 0.1)
+        recordings['time'].record(self.hocObj._ref_t, 0.025)
         # recordings['soma(0.5)'].record(init.CellLoader.cell.soma[0](0.5)._ref_v, 0.1)
-        recordings['soma(0.5)'].record(cell.soma[0](0.5)._ref_v, 0.1)
+        recordings['soma(0.5)'].record(cell.soma[0](0.5)._ref_v, 0.025)
         # recordings['isoma(0.5)'].record(cell.soma[0](0.5)._ref_i_membrane, 0.1)
 
-        neuron.h.tstop = 2000
+        self.hocObj.tstop = 3000 #TODO: make parameter
+        self.hocObj.dt = 0.025 # 0.025 -> 25 us = 40kHz sampling
         # create_stimuli(init.CellLoader.cell, 3)
 
         # assert(sys.getrefcount(stimuli) > 1)
-        memireclist = neuron.h.List()
+        memireclist = self.hocObj.List()
         for sec in mcell.sections:
             for seg in sec:
 
-                memirec = neuron.h.Vector()
+                memirec = self.hocObj.Vector()
                 memirec.record(seg._ref_i_membrane, .1)
                 memireclist.append(memirec)
 
-        print('Disabling variable timestep integration')
-        neuron.h.cvode_active(0)
+        for sec in self.hocObj.allsec():
+            if self.hocObj.ismembrane("xtra", sec=sec):
+                for x in sec:
+                    x.es_xtra = 0
 
-        neuron.h.finitialize(-65)
-        print("finitialize")
-        neuron.h.fcurrent()
-        print('Running for %f ms' % neuron.h.tstop)
+        self.hocObj._ref_stim_xtra[0] = 0
+
+        # self.microStim(0,0,0,0, 0.3)
+
+        cell.synapses.update_synapses(self.hocObj.Shape())
+
+        print('Disabling variable timestep integration')
+        self.hocObj.cvode_active(0)
+
+        self.hocObj.finitialize(-65)
+        self.hocObj.fcurrent()
+        print('Running for %f ms' % self.hocObj.tstop)
 
         counter = 0
 
-        neuron.h.t = 0
-        interval = 1000
-        while neuron.h.t < neuron.h.tstop:
+        self.hocObj.t = 0
+        interval = 1
 
-            neuron.h.fadvance()
+        while self.hocObj.t < self.hocObj.tstop:
+
+            self.hocObj.fadvance()
+            #if self.hocObj.t > 10:
+            #    self.hocObj._ref_stim_xtra[0] = -50
+
+
             if counter == interval:
-
-                print(neuron.h.t, cell.soma[0](
+                print(self.hocObj.t, cell.soma[0](
                     0.5)._ref_v[0], cell.soma[0](0.5)._ref_i_membrane[0])
                 counter = 0
+                imem = np.array(memireclist)
+                
+                if self.mapping is not None:
+                    lfp = np.matmul(self.mapping, imem)
+                    if stepFunction:
+                        cmd = stepFunction(lfp)
+                        cmd.DO(self)
 
-                lfps = np.matmul(self.mapping.T, np.array(memireclist))
-               
                 plt.clf()
-                plt.subplot(2, 1, 1)
-                plt.imshow(lfps[:, -1].reshape([10, 100]))
-                plt.subplot(2, 1, 2)
+                plt.title(self.title)
                 plt.plot(recordings['time'], recordings['soma(0.5)'])
                 plt.pause(0.05)
-
+                
 
             counter += 1
 
@@ -216,6 +267,39 @@ class basicsim():
         plt.plot(recordings['time'], recordings['soma(0.5)'])
         plt.show()
 
+    def constStim(self, theta, phi):
+        theta = theta * np.pi / 180
+        phi = phi * np.pi / 180
+        Ex = np.sin(theta) * np.cos(phi)
+        Ey = np.sin(theta) * np.sin(phi)
+        Ez = np.cos(theta)
+
+        for sec in self.hocObj.allsec():
+            if self.hocObj.ismembrane("xtra", sec=sec):
+                for seg in sec:
+                    seg.es_xtra = -50 * \
+                        (-Ex * seg.x_xtra + Ey * seg.y_xtra + Ez * seg.z_xtra) * 1e-3
+
+    def microStim(self, current, x,y,z, sigma):
+        print("calling microstim....")
+        count = 0
+        for sec in self.hocObj.allsec():
+            
+            interval = 1000
+            if self.hocObj.ismembrane("xtra", sec=sec):
+                for seg in sec:
+                    r = np.sqrt((seg.x_xtra - x)**2 + (seg.y_xtra - y)**2 + (seg.z_xtra - z)**2)
+                    if r==0:
+                        r=1e-9
+
+                    if count%interval == 0:
+                        print(seg, "({},{},{}) ".format(x,y,z), "({},{},{}) ".format(seg.x_xtra,seg.y_xtra,seg.z_xtra), "voltage is:", current*1e-3/(4*np.pi*sigma*r))
+                        count = 0
+
+                    seg.es_xtra = current*1e-3/(4*np.pi*sigma*r)
+                    
+                    count += 1
+
     def create_stimuli(self, cell, step_number):
         """Create the stimuli"""
 
@@ -229,7 +313,7 @@ class basicsim():
             hyp_amp, step_amp[0], step_amp[1], step_amp[2] = first_line.split(
                 ' ')
 
-        iclamp = neuron.h.IClamp(0.5, sec=cell.soma[0])
+        iclamp = self.hocObj.IClamp(0.5, sec=cell.soma[0])
         iclamp.delay = 700
         iclamp.dur = 2000
         iclamp.amp = float(step_amp[step_number - 1])
@@ -239,7 +323,7 @@ class basicsim():
 
         stimuli.append(iclamp)
 
-        hyp_iclamp = neuron.h.IClamp(0.5, sec=cell.soma[0])
+        hyp_iclamp = self.hocObj.IClamp(0.5, sec=cell.soma[0])
         hyp_iclamp.delay = 0
         hyp_iclamp.dur = 3000
         hyp_iclamp.amp = float(hyp_amp)
@@ -254,9 +338,9 @@ class basicsim():
 
 if __name__ == '__main__':
     mcell = MyelinatedCell()
-    mcell.loadcell(16, myelinate_ax=True)
-    celld = CellData(mcell)
-    sim = basicsim(celld)
+    mcell.loadcell('L5_TTPC2_cADpyr232_1', myelinate_ax=True, synapses=True)
+    celld = CellData(mcell, neuron.h)
+    sim = basicsim(celld, neuron.h)
     res = 10
     xmin = min(celld.xend)
 
@@ -266,22 +350,17 @@ if __name__ == '__main__':
     zmin = int(min(celld.zend) / res) - 5
     zmax = int(max(celld.zend) / res) + 5
 
-    X, Y, Z = np.mgrid[1:2, -50:50:1, -5:5:1] * res
-    X = X - xmin
-    X = X.flatten()
-    Y = Y.flatten()
-    Z = Z.flatten()
+    X, Y, Z = np.mgrid[1:2, ymin - 50:ymax + 50:1, zmin - 5:zmin + 5:1] * res
+    X = X - xmin - 10
 
-    sim.mapping = np.zeros([celld.totseg, X.shape[0]])
+    sim.mapping = np.zeros([len(X.flatten()), celld.totseg])
 
-    for i, (x, y, z) in enumerate(zip(X, Y, Z)):
-        # print(i,x,y,z)
-        sim.mapping[:, i] = lfpcalc.calc_lfp_linesource(
+    for i, (x, y, z) in enumerate(zip(X.flatten(), Y.flatten(), Z.flatten())):
+        sim.mapping[i, :] = lfpcalc.calc_lfp_linesource(
             celld, x, y, z, 0.3, celld.diam)
         # print(x,y,z, mapping.shape)
 
-    sim.sim(mcell)
-
+    sim.sim(mcell, X.shape[1:])
 
     with open('testpickle.celldata', 'wb') as pfile:
         pickle.dump(celld, pfile)
