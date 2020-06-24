@@ -1,4 +1,5 @@
 from multiprocessing import Process, Pipe
+
 from aberraAxon import MyelinatedCell
 import LFPylite
 import os
@@ -169,14 +170,16 @@ class CLStim():
                     LFPs = np.add(LFPs, lfp[:, -1].reshape(self.shape))
                     LFPs = self.addNoise(LFPs)
 
+                self.trigger = 1
 
                 if np.any(LFPs >= 0.01):
                     self.plot(LFPs)
-                    self.trigger = 1
-
+                    
+                    
                 self.biphasicpulse()
                 self.currents = np.append(self.currents, self.current)
                 print(self.time, "s, current setting:", self.current, "maxlfp", np.max(LFPs))
+                self.current = 0
                 for pipe in pipes:
                    pipe.send(SetStim(self.current, x=0,y=0,z=0,sigma=0.3)) # send stim
 
@@ -203,9 +206,14 @@ class CLStim():
             elif self.time - self.start < 200e-6:
                 self.current = -100e-6
 
+
+            elif self.time - self.start < 10e-3:
+                self.current = 0
+
             else:
                 self.stimming = 0
                 self.start = 0
+                self.trigger = 0
 
 
     def plot(self, lfps):
@@ -222,11 +230,11 @@ class CLStim():
         im.set_clim(self.clims[0], self.clims[1])
         plt.title("LFPS")
         # self.csd(lfps)
-        """
+        
         plt.subplot(2,1,2)
         plt.plot(self.currents)
         plt.plot()
-        """
+        
         plt.pause(0.05)
         
 

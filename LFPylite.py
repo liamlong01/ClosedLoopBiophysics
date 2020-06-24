@@ -8,6 +8,8 @@ Dependencies:
 import neuron  # this currently has just one use (n3d -x3d etc)
 # TODO remove neuron import at some point with slight refactoring
 
+from  multiprocessing import Pipe,Process
+
 import sys
 import pdb
 import numpy as np
@@ -16,6 +18,9 @@ from aberraAxon import MyelinatedCell
 import lfpcalc
 import matplotlib.pyplot as plt
 import pickle
+import plot3d
+
+
 
 class CellData():
 
@@ -44,7 +49,7 @@ class CellData():
 
          
 
-    def __init__(self, cell, hocObj):
+    def __init__(self, cell, hocObj = None):
         """
         This is adapted directly from the
         run_simulation._collect_geometry_neuron
@@ -61,7 +66,11 @@ class CellData():
         MERCHANTABILdITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
         GNU General Public License for more detail
         """
-        self.imem = None
+        if hocObj is None:
+            hocObj = neuron.h
+
+
+        
         if hasattr(cell, 'totnsegs'):
             print("totnsegs")
             raise NotImplementedError
@@ -136,15 +145,17 @@ class CellData():
         self.xstart = self.data['xstart']
         self.xend = self.data['xend']
 
-        self.ystart = self.data['xstart']
-        self.yend = self.data['xstart']
+        self.ystart = self.data['ystart']
+        self.yend = self.data['ystart']
 
-        self.zstart = self.data['xstart']
-        self.zend = self.data['xstart']
+        self.zstart = self.data['zstart']
+        self.zend = self.data['zstart']
 
-        self.area = self.data['xstart']
-        self.diam = self.data['xstart']
-        self.length = self.data['xstart']
+        self.area = self.data['area']
+        self.diam = self.data['diam']
+        self.length = self.data['length']
+
+        self.imem = np.zeros(self.xstart.shape)
 
 
 
@@ -160,12 +171,15 @@ class basicsim():
     # sigma
     # r_limit
 
-    def __init__(self, celldata, hocObj, title='A cell soma plot'):
+    def __init__(self, celldata, hocObj, renderPipe = None, title='A cell soma plot'):
         self.celldata = celldata
         self. hocObj = hocObj
 
         self.title = title
         self.mapping = None
+
+        self.renderPipe = renderPipe
+     
 
     def sim(self, mcell, shape, stepFunction = None):
         
@@ -204,6 +218,8 @@ class basicsim():
         self.hocObj._ref_stim_xtra[0] = 0
 
         # self.microStim(0,0,0,0, 0.3)
+        for i in range(54): #TODO: paramaterize these synapse indices to make sure we know what we initialize
+            cell.synapses.active_pre_mtypes.x[i] = 1
 
         cell.synapses.update_synapses(self.hocObj.Shape())
 
@@ -230,7 +246,9 @@ class basicsim():
                 print(self.hocObj.t, cell.soma[0](
                     0.5)._ref_v[0], cell.soma[0](0.5)._ref_i_membrane[0])
                 counter = 0
-                imem = np.array(memireclist)
+                if self.renderPipe:
+                  imem = np.array(memireclist)[:,-1]
+                  self.renderPipe.send(imem)
                 
                 if self.mapping is not None:
                     lfp = np.matmul(self.mapping, imem)
@@ -238,15 +256,15 @@ class basicsim():
                         cmd = stepFunction(lfp)
                         cmd.DO(self)
 
-                plt.clf()
-                plt.title(self.title)
-                plt.plot(recordings['time'], recordings['soma(0.5)'])
-                plt.pause(0.05)
+               # plt.clf()
+               # plt.title(self.title)
+               # plt.plot(recordings['time'], recordings['soma(0.5)'])
+               # plt.pause(0.05)
                 
 
             counter += 1
 
-        self.celldata.imem = np.array(memireclist)
+        self.celldata.imem= np.array(memireclist)
 
         time = np.array(recordings['time'])
         soma_voltage = np.array(recordings['soma(0.5)'])
@@ -297,7 +315,7 @@ class basicsim():
                         count = 0
 
                     seg.es_xtra = current*1e-3/(4*np.pi*sigma*r)
-                    
+
                     count += 1
 
     def create_stimuli(self, cell, step_number):
@@ -336,11 +354,30 @@ class basicsim():
         return stimuli
 
 
+def startRenderer(celldata):
+    parent_conn, conn = Pipe()
+    p = Process(target=plot3d.start, args=(celldata, conn))
+    p.start()
+
+    return parent_conn
+
+
 if __name__ == '__main__':
     mcell = MyelinatedCell()
-    mcell.loadcell('L5_TTPC2_cADpyr232_1', myelinate_ax=True, synapses=True)
+
+    for arg in sys.argv[1:]:
+        assert(arg in ["-noaxon", "-nosynapse"])
+
+    myelinate_ax = "-noaxon" not in sys.argv
+    synapse = '-nosynapse' not in sys.argv
+
+    mcell.loadcell('L5_TTPC2_cADpyr232_1', myelinate_ax=myelinate_ax, synapses=synapse)
     celld = CellData(mcell, neuron.h)
     sim = basicsim(celld, neuron.h)
+
+
+    sim.renderPipe = startRenderer(celld)
+
     res = 10
     xmin = min(celld.xend)
 
