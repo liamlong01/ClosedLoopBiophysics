@@ -210,7 +210,7 @@ class simGUI(QtWidgets.QWidget):
         print("Parent - initializing child...")
         
         res = 10
-        X, Y, Z = np.mgrid[1:2, -50:50:1, -5:+5:1] * res
+        self.X, self.Y, self.Z = np.mgrid[1:2, -50:50:1, -5:+5:1] * res
 
         self.pipe,l = self.createNetworkCell(cell_str)
         self.pipe.send(singlecellNEURON.add_elec_msg(X,Y,Z))

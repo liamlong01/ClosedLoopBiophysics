@@ -2,6 +2,8 @@ from multiprocessing import Process, Pipe
 
 from aberraAxon import MyelinatedCell
 import LFPylite
+from ElectrodeArray import ElectrodeArray
+
 import os
 import pdb
 import numpy as np
@@ -82,8 +84,10 @@ class generic_func_msg(Message):
 
 class sim_msg(Message):
 
-    def DO(self, ncell):
+    def DO(self, ncell, render=False):
         ncell.simulator.sim(ncell.mcell, ncell.shape)
+        if render: 
+            ncell.simulator.renderPipe = LFPylite.startRenderer(ncell.celld, ncell.elec)
 
 class sim_msg(Message):
 
@@ -110,6 +114,10 @@ class add_elec_msg(Message):
             # print(x,y,z, mapping.shape)
             ncell.shape = X.shape[1:]
 
+        ncell.elec = ElectrodeArray(X,Y,Z)
+
+       
+        print("initialized the render")
 
 class Terminate(Exception):
     pass
@@ -162,17 +170,19 @@ class CLStim():
     def Core(self, pipes, conn):
        
         try:
+
             while True:
                 LFPs = np.zeros(self.shape)
                 for pipe in pipes:
 
                     lfp = pipe.recv()
-                    LFPs = np.add(LFPs, lfp[:, -1].reshape(self.shape))
+                  
+                    LFPs = np.add(LFPs, lfp.reshape(self.shape))
                     LFPs = self.addNoise(LFPs)
 
                 self.trigger = 1
 
-                if np.any(LFPs >= 0.01):
+                if self.time > 1e-3: 
                     self.plot(LFPs)
                     
                     
@@ -336,7 +346,7 @@ class NetworkCell():
             # cwd = os.getcwdnce            # os.chdir(neuronfolder)
             self.print_info("Instatiating cell")
             self.mcell = MyelinatedCell(hocObj=self.hoc)
-            self.mcell.loadcell(self.cellstr, myelinate_ax=True, synapses=True)
+            self.mcell.loadcell(self.cellstr, myelinate_ax=True, synapses=False)
 
             self.celld = LFPylite.CellData(self.mcell, self.hoc)
 
@@ -377,7 +387,6 @@ class NetworkCell():
         return msg
 
     def shiftcell(self, x, y, z):
-        xshift = np.min(x.flatten()) - \
-            np.min(self.celld.data['xstart'].flatten()) + 1
+        xshift = - np.min(self.celld.xstart) +np.mean(x)
         self.print_info("shifting cell by {} units".format(xshift))
         self.celld.shift(xshift, 0, 0)

@@ -251,7 +251,7 @@ class basicsim():
                   self.renderPipe.send(imem)
                 
                 if self.mapping is not None:
-                    lfp = np.matmul(self.mapping, imem)
+                    lfp = np.matmul(self.mapping, imem).reshape(shape)
                     if stepFunction:
                         cmd = stepFunction(lfp)
                         cmd.DO(self)
@@ -354,11 +354,12 @@ class basicsim():
         return stimuli
 
 
-def startRenderer(celldata):
+def startRenderer(celldata, elec):
     parent_conn, conn = Pipe()
-    p = Process(target=plot3d.start, args=(celldata, conn))
+    print("rendering")
+    p = Process(target=plot3d.start, args=(celldata, conn, elec))
     p.start()
-
+    print("unrendering")
     return parent_conn
 
 
