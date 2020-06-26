@@ -2,7 +2,7 @@
 import sys
 import shutil
 import os
-import run
+ 
 import pickle
 import pdb
 import aberraAxon # TODO get a better name
