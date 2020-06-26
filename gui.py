@@ -140,6 +140,9 @@ class simGUI(QtWidgets.QWidget):
 
         layout = QtWidgets.QVBoxLayout()
         groupbox.setLayout(layout)
+
+        self.renderCbox = QtWidgets.QCheckBox("Render", parent=self)
+        layout.addWidget(self.renderCbox)
         
         btn3 = QtWidgets.QPushButton('Try LFP sim', self)
         btn3.clicked.connect(self.simcells)
@@ -151,13 +154,6 @@ class simGUI(QtWidgets.QWidget):
         btn.resize(btn.sizeHint())
         layout.addWidget(btn)
 
-        btn2 = QtWidgets.QPushButton('Reload Main Module', self)
-        btn2.clicked.connect(lambda: reload(singlecellNEURON))
-        btn2.resize(btn.sizeHint())
-        layout.addWidget(btn2)
-
-       
-
         return groupbox
 
     def terminateAll(self):
@@ -165,6 +161,7 @@ class simGUI(QtWidgets.QWidget):
             conn.send(singlecellNEURON.terminate_msg())
         self.conns = []
         self.cellListView.clear()
+        reload(singlecellNEURON)
 
     def addCell(self, cell_str):
         newConn, newLabel = self.createNetworkCell(cell_str)
@@ -182,7 +179,7 @@ class simGUI(QtWidgets.QWidget):
 
         for conn in self.conns:
             conn.send(singlecellNEURON.add_elec_msg(X,Y,Z))
-            conn.send(singlecellNEURON.sim_msg())
+            conn.send(singlecellNEURON.sim_msg(self.renderCbox.checkState()))
 
     def createNetworkCell(self, cell_str):
         """

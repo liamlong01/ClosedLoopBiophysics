@@ -251,7 +251,7 @@ if __name__ == '__main__':
     # we need to delay these imports until we get the correct mechanism file
     # ODO move these imports? doing mechanism loading in bash now
 
-    import LFPy
+    import LFPyStim as LFPy
     import neuron
 
     cwd = os.getcwd()
@@ -286,13 +286,9 @@ if __name__ == '__main__':
         templatefile = gen_template_withaxon(templatefile)
 
 
+    print("template: {}".format(templatename    ))
 
-    axon_editor = aberraAxon.initialize()
-    print("initialized....")
-
-    funcs = [axon_editor.cellChooser.getLoadedTemplate, axon_editor.cellChooser.add_axons]
-    fargs = [{'templatename': templatename}, {}]
-    cell = LFPy.TemplateCell(morphology=morphologyfile,
+    cell = LFPy.MyelinatedTemplateCell(morphology=morphologyfile,
                              templatefile=templatefile,
                              templatename=templatename,
                              templateargs=0,
@@ -301,10 +297,7 @@ if __name__ == '__main__':
                              dt=dt,
                              v_init=-70,
                              pt3d=True,
-                             extracellular=True,
                              delete_sections=True,
-                             custom_fun=funcs,
-                             custom_fun_args=fargs,
                              verbose=True)
 
     
@@ -350,7 +343,7 @@ if __name__ == '__main__':
     electrode = LFPy.RecExtElectrode(**electrodeParameters)
 
     """
-    pdb.set_trace()
+    
 
     print("simulating....")
 

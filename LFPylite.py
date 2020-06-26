@@ -170,6 +170,7 @@ class basicsim():
     # x,y,z coordinate
     # sigma
     # r_limit
+    doDebug = False
 
     def __init__(self, celldata, hocObj, renderPipe = None, title='A cell soma plot'):
         self.celldata = celldata
@@ -179,9 +180,19 @@ class basicsim():
         self.mapping = None
 
         self.renderPipe = renderPipe
+
+    def  debug(self):
+        def dumFunc():
+            return 0
+        if self.doDebug:
+            return pdb.set_trace
+        else:
+            return dumFunc
      
 
     def sim(self, mcell, shape, stepFunction = None):
+
+        self.debug()()      
         
         cell = mcell.cell
         # stimuli = self.create_stimuli(cell, 3)
@@ -213,15 +224,18 @@ class basicsim():
         for sec in self.hocObj.allsec():
             if self.hocObj.ismembrane("xtra", sec=sec):
                 for x in sec:
-                    x.es_xtra = 0
+                    x.es_xtra = 1
 
-        self.hocObj._ref_stim_xtra[0] = 0
 
-        # self.microStim(0,0,0,0, 0.3)
-        for i in range(54): #TODO: paramaterize these synapse indices to make sure we know what we initialize
-            cell.synapses.active_pre_mtypes.x[i] = 1
+        self.hocObj._ref_stim_xtra[0] = 1
 
-        cell.synapses.update_synapses(self.hocObj.Shape())
+        if cell.synapses:
+            print("synapses are working!!!!")
+            # self.microStim(0,0,0,0, 0.3)
+            for i in range(54): #TODO: paramaterize these synapse indices to make sure we know what we initialize
+                cell.synapses.active_pre_mtypes.x[i] = 1
+
+            cell.synapses.update_synapses(self.hocObj.Shape())
 
         print('Disabling variable timestep integration')
         self.hocObj.cvode_active(0)
@@ -235,6 +249,7 @@ class basicsim():
         self.hocObj.t = 0
         interval = 1
 
+
         while self.hocObj.t < self.hocObj.tstop:
 
             self.hocObj.fadvance()
@@ -246,21 +261,24 @@ class basicsim():
                 print(self.hocObj.t, cell.soma[0](
                     0.5)._ref_v[0], cell.soma[0](0.5)._ref_i_membrane[0])
                 counter = 0
+                imem = np.array(memireclist)[:,-1]
+                
                 if self.renderPipe:
-                  imem = np.array(memireclist)[:,-1]
+                 
                   self.renderPipe.send(imem)
                 
                 if self.mapping is not None:
                     lfp = np.matmul(self.mapping, imem).reshape(shape)
                     if stepFunction:
                         cmd = stepFunction(lfp)
-                        cmd.DO(self)
 
-               # plt.clf()
-               # plt.title(self.title)
-               # plt.plot(recordings['time'], recordings['soma(0.5)'])
-               # plt.pause(0.05)
-                
+                        self.handleCmd(cmd)
+                """ 
+                plt.clf()
+                plt.title(self.title)
+                plt.plot(recordings['time'], recordings['soma(0.5)'])
+                plt.pause(0.05)
+                """
 
             counter += 1
 
@@ -284,6 +302,9 @@ class basicsim():
         # import matplotlib.pyplot as plt
         plt.plot(recordings['time'], recordings['soma(0.5)'])
         plt.show()
+    def handleCmd(self, cmd):
+        print("basicsim -- " + str(cmd))
+        cmd.DO(self)
 
     def constStim(self, theta, phi):
         theta = theta * np.pi / 180
@@ -299,24 +320,29 @@ class basicsim():
                         (-Ex * seg.x_xtra + Ey * seg.y_xtra + Ez * seg.z_xtra) * 1e-3
 
     def microStim(self, current, x,y,z, sigma):
-        print("calling microstim....")
+        print("calling microstim....", current)
         count = 0
+        self.hocObj._ref_stim_xtra[0] = 1
+
         for sec in self.hocObj.allsec():
-            
-            interval = 1000
+         
+            interval = 100
             if self.hocObj.ismembrane("xtra", sec=sec):
                 for seg in sec:
+                    
+                    
                     r = np.sqrt((seg.x_xtra - x)**2 + (seg.y_xtra - y)**2 + (seg.z_xtra - z)**2)
                     if r==0:
                         r=1e-9
-
+                    """
                     if count%interval == 0:
                         print(seg, "({},{},{}) ".format(x,y,z), "({},{},{}) ".format(seg.x_xtra,seg.y_xtra,seg.z_xtra), "voltage is:", current*1e-3/(4*np.pi*sigma*r))
                         count = 0
-
-                    seg.es_xtra = current*1e-3/(4*np.pi*sigma*r)
+                    """
+                    seg._ref_es_xtra[0] = current*1e-3/(4*np.pi*sigma*r)
 
                     count += 1
+                    print( "{} e_extracellular: {}, global stim: {}, es_xtra: {}".format(seg, seg.e_extracellular, self.hocObj("stim_xtra"), seg.es_xtra))
 
     def create_stimuli(self, cell, step_number):
         """Create the stimuli"""
@@ -373,11 +399,12 @@ if __name__ == '__main__':
     synapse = '-nosynapse' not in sys.argv
 
     mcell.loadcell('L5_TTPC2_cADpyr232_1', myelinate_ax=myelinate_ax, synapses=synapse)
+    neuron.h.finitialize(-65)
     celld = CellData(mcell, neuron.h)
     sim = basicsim(celld, neuron.h)
 
 
-    sim.renderPipe = startRenderer(celld)
+    # sim.renderPipe = startRenderer(celld) #TODO?: include dummy elec param here?
 
     res = 10
     xmin = min(celld.xend)
@@ -392,6 +419,7 @@ if __name__ == '__main__':
     X = X - xmin - 10
 
     sim.mapping = np.zeros([len(X.flatten()), celld.totseg])
+    sim.doDebug = True
 
     for i, (x, y, z) in enumerate(zip(X.flatten(), Y.flatten(), Z.flatten())):
         sim.mapping[i, :] = lfpcalc.calc_lfp_linesource(

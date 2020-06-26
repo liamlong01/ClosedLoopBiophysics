@@ -17,8 +17,8 @@ class NeuronRender(object):
     def show(self):
 
 
-        cubesize = 1e-2
-        elecsize = 2e-2
+        cubesize = 5e-2
+        elecsize = 5e-2
 
         window = app.Window()
 
@@ -154,9 +154,9 @@ class NeuronRender(object):
             for cube in self.elecs:
                 cube.draw(gl.GL_TRIANGLES, I)
              
-
+            
             # Make cube rotate
-            self.theta += 10 # degrees
+            self.theta += .5 # degrees
             self.phi += 0.5 # degrees
          
             model = np.eye(4, dtype=np.float32)

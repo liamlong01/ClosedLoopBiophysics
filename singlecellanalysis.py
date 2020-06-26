@@ -1,4 +1,7 @@
-import LFPy
+
+
+
+import LFPyStim as LFPy
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
@@ -90,6 +93,7 @@ def debug_plots(cell, electrode, cellsoma=None, electrodeLFP=None):
 
 def update(frame, spike, shape, im, im2, ln):
     im.set_array(spike[:, frame].reshape(shape))
+    # im2.set_array(util.csd(spike[:, frame].reshape(shape)))
     im2.set_array(util.csd(spike[:, frame].reshape(shape)))
     ln.set_data(np.linspace(0, frame - 1, frame), spike[200, :frame])
     return [im, im2, ln]
@@ -104,11 +108,11 @@ def animate_spike(spike, shape):
     im = ax1.imshow(spike[:, 0].reshape(shape))
     im.set_clim(np.min(spike.flatten()), np.max(spike.flatten()))
     fig1.colorbar(im, ax=ax1)
-
+   
     plt.subplot(1,2,2)
     ax3 = plt.gca()
 
-    im3 = ax3.imshow(util.csd(spike[:,0].reshape(shape)))
+    im3 = ax3.imshow(spike[:,0].reshape(shape))
     cmax = np.max([np.max(util.csd(x).flatten()) for x in spike])
     cmin = np.min([np.min(util.csd(x).flatten()) for x in spike])
 
@@ -138,8 +142,8 @@ def animate_spike(spike, shape):
 
 
 def main():
-    celltoload = "L23_MC_dNAC222_5"
-    directory = "E:/results/cellvoltages_neurons"
+    celltoload = "L4_ChC_cNAC187_1"
+    directory = "E:/results/cellvoltages"
 
     cell = loadcell(celltoload, directory)
 
@@ -153,7 +157,7 @@ def main():
 
     spike = getspike_basic(electrode.LFP)
     noisy_spike = util.addNoise(spike)
-    util.wrap_kcsd(X, Y, Z, spike)
+    # util.wrap_kcsd(X, Y, Z, spike)
     animate_spike(noisy_spike, shape)
 
     return cell, electrode, spike

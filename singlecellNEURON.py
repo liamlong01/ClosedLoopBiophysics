@@ -20,13 +20,13 @@ class Message():
     def Do(self, singlecellNEURON):
         pass
 
-    def __str__(self):
-        return "Message"
 
 
 class TestMessage(Message):
     def DO(self, singlecellNEURON):
         print("we are running test message")
+    def __str__(self):
+        return "TestMessage"
 
 
 class CreateMessage(Message):
@@ -82,16 +82,19 @@ class generic_func_msg(Message):
         else:
             self.func()
 
-class sim_msg(Message):
-
-    def DO(self, ncell, render=False):
-        ncell.simulator.sim(ncell.mcell, ncell.shape)
-        if render: 
-            ncell.simulator.renderPipe = LFPylite.startRenderer(ncell.celld, ncell.elec)
+       
 
 class sim_msg(Message):
+
+    def __init__(self, render=False):
+        self.render = render
 
     def DO(self, ncell):
+      
+        if self.render:
+            ncell.simulator.renderPipe = LFPylite.startRenderer(ncell.celld, ncell.elec)
+            print(ncell.simulator.renderPipe)
+
         ncell.simulator.sim(ncell.mcell, ncell.shape, ncell.stepFunction)
 
 
@@ -115,10 +118,9 @@ class add_elec_msg(Message):
             ncell.shape = X.shape[1:]
 
         ncell.elec = ElectrodeArray(X,Y,Z)
+        print("exiting add_elec_msg")
 
-       
-        print("initialized the render")
-
+      
 class Terminate(Exception):
     pass
 
@@ -127,16 +129,28 @@ class terminate_msg(Message):
     def DO(self, ncell):
         raise Terminate()
 
+
+def isIterable(obj):
+    try:
+        iter(obj)
+    except TypeError:
+        return False
+    else:
+        return True
+
 class SetStim(Message):
     def __init__(self, current, x,y,z,sigma):
-        self.x = x
-        self.y = y
-        self.z = z
-        self.sigma = sigma
-        self.current = current
+
+        self.x = x if isIterable(x) else [x]
+        self.y = y if isIterable(y) else [y]
+        self.z = z if isIterable(z) else [z]
+        self.sigma = sigma 
+        self.current = current if isIterable(current) else [current]
   
     def DO(self, simcontrol):
-        simcontrol.microStim(self. current, self.x, self.y, self.z, self.sigma)
+        for x,y,z,current in zip(self.x, self.y, self.z, self.current):
+            print(current)
+            simcontrol.microStim(current, x, y, z, self.sigma)
 
 
 class CLStim():
@@ -181,19 +195,19 @@ class CLStim():
                     LFPs = self.addNoise(LFPs)
 
                 self.trigger = 1
+                if self.time > 5e-3:
+                   pass
+                   #self.biphasicpulse()
 
-                if self.time > 1e-3: 
+                if np.max(LFPs)>0.01 and not self.stimming: 
                     self.plot(LFPs)
-                    
-                    
-                self.biphasicpulse()
+
                 self.currents = np.append(self.currents, self.current)
                 print(self.time, "s, current setting:", self.current, "maxlfp", np.max(LFPs))
-                self.current = 0
+            
                 for pipe in pipes:
                    pipe.send(SetStim(self.current, x=0,y=0,z=0,sigma=0.3)) # send stim
 
-                 
 
                 self.time+=self.dt
 
@@ -211,13 +225,13 @@ class CLStim():
 
         else:
             if self.time - self.start < 100e-6:
-                self.current = 100e-6
+                self.current = 100e-6       
                 
             elif self.time - self.start < 200e-6:
                 self.current = -100e-6
 
 
-            elif self.time - self.start < 10e-3:
+            elif self.time - self.start < 1e-3:
                 self.current = 0
 
             else:
@@ -245,7 +259,7 @@ class CLStim():
         plt.plot(self.currents)
         plt.plot()
         
-        plt.pause(0.05)
+        plt.pause(0.01)
         
 
     def csd(self, lfps):
@@ -307,8 +321,9 @@ class CLStim():
 
 class NetworkCell():
 
-    def __init__(self, cell, label="Unlabeled"):
+    def __init__(self, cell, label="Unlabeled", synapses = True):
         self.cellstr = cell
+        self.synapses = synapses
         self.parent_conn, self.conn = Pipe()
 
         self.label = label + cell
@@ -346,7 +361,7 @@ class NetworkCell():
             # cwd = os.getcwdnce            # os.chdir(neuronfolder)
             self.print_info("Instatiating cell")
             self.mcell = MyelinatedCell(hocObj=self.hoc)
-            self.mcell.loadcell(self.cellstr, myelinate_ax=True, synapses=False)
+            self.mcell.loadcell(self.cellstr, myelinate_ax=True, synapses=self.synapses)
 
             self.celld = LFPylite.CellData(self.mcell, self.hoc)
 
@@ -371,7 +386,7 @@ class NetworkCell():
             return e
 
     def handleMsg(self, Msg):
-
+        self.print_info(str(Msg))
         self.print_info("running msg.do")
         Msg.DO(self)
 
