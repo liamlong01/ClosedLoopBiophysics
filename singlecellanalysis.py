@@ -1,10 +1,16 @@
-import LFPY
+
+
+
+import LFPyStim as LFPy
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 
 import sys
 import pdb
+
+import cv2 as cv
+import util
 
 from matplotlib import animation
 
@@ -58,13 +64,13 @@ def electrode_LFP(cell):
     # calcing electrode LFP
     print("calcing  electrode LFP...")
     electrode.calc_lfp()
-    return electrode, Y
+    return electrode, X, Y, Z
 
 
 def getspike_basic(lfp):
     pk = np.unravel_index(np.argmax(lfp), lfp.shape)
 
-    spike = lfp[:, pk[1] - 200:pk[1] + 300]
+    spike = lfp[:, pk[1] - 70:pk[1] + 50]
     return spike
 
 
@@ -85,20 +91,33 @@ def debug_plots(cell, electrode, cellsoma=None, electrodeLFP=None):
     plt.show()
 
 
-def update(frame, spike, shape, im, ln):
+def update(frame, spike, shape, im, im2, ln):
     im.set_array(spike[:, frame].reshape(shape))
+    # im2.set_array(util.csd(spike[:, frame].reshape(shape)))
+    im2.set_array(util.csd(spike[:, frame].reshape(shape)))
     ln.set_data(np.linspace(0, frame - 1, frame), spike[200, :frame])
-    return [im, ln]
+    return [im, im2, ln]
 
 
 def animate_spike(spike, shape):
-
+    
     fig1 = plt.figure()
+    plt.subplot(1,2,1)
     ax1 = plt.gca()
 
     im = ax1.imshow(spike[:, 0].reshape(shape))
     im.set_clim(np.min(spike.flatten()), np.max(spike.flatten()))
     fig1.colorbar(im, ax=ax1)
+   
+    plt.subplot(1,2,2)
+    ax3 = plt.gca()
+
+    im3 = ax3.imshow(spike[:,0].reshape(shape))
+    cmax = np.max([np.max(util.csd(x).flatten()) for x in spike])
+    cmin = np.min([np.min(util.csd(x).flatten()) for x in spike])
+
+    im3.set_clim(cmax, cmin)
+    fig1.colorbar(im3, ax=ax3)
 
     plt.figure()
     ax2 = plt.axes(xlim=(0, 500), ylim=(np.min(spike.flatten()),
@@ -106,16 +125,16 @@ def animate_spike(spike, shape):
 
     ln, = ax2.plot([], [])
 
-    update_func = lambda frame, spike=spike, shape=shape, im=im, ln=ln: \
-                                               update(frame, spike, shape, im, ln)
+    update_func = lambda frame, spike=spike, shape=shape, im=im, im3=im3, ln=ln: \
+                                               update(frame, spike, shape, im, im3, ln)
     
 
     # Set up formatting for the movie files
     Writer = animation.writers['ffmpeg']
-    writer = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
+    writer = Writer(fps=15, metadata=dict(artist='Liam Long'), bitrate=1800)
 
     anim = animation.FuncAnimation(fig1, update_func, init_func = lambda : update_func(0),
-                               frames=500, interval=5, blit=True)
+                               frames=120, interval=5, blit=True)
 
     anim.save('basic_animation.mp4', writer=writer)
 
@@ -123,12 +142,12 @@ def animate_spike(spike, shape):
 
 
 def main():
-    celltoload = "L4_LBC_dSTUT214_5"
-    directory = "E:/results/cellvoltages_neurons"
+    celltoload = "L4_ChC_cNAC187_1"
+    directory = "E:/results/cellvoltages"
 
     cell = loadcell(celltoload, directory)
 
-    electrode, Y = electrode_LFP(cell)
+    electrode, X, Y, Z  = electrode_LFP(cell)
     print("_________ELCTRODE INFO______________________\nY shape: ")
     print(Y.shape)
     print(electrode.LFP.shape)
@@ -137,7 +156,9 @@ def main():
     shape = Y.shape[1:]
 
     spike = getspike_basic(electrode.LFP)
-    animate_spike(spike, shape)
+    noisy_spike = util.addNoise(spike)
+    # util.wrap_kcsd(X, Y, Z, spike)
+    animate_spike(noisy_spike, shape)
 
     return cell, electrode, spike
 
