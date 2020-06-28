@@ -54,4 +54,7 @@ from . import lfpcalc
 from . import tools
 from . import inputgenerators
 from . import run_simulation
+
+
 from .MyelinatedTemplateCell   import MyelinatedTemplateCell   
+from .CLStim import CLStim 

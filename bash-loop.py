@@ -2,7 +2,7 @@
 import sys
 import shutil
 import os
- 
+import run
 import pickle
 import pdb
 import aberraAxon # TODO get a better name
@@ -301,6 +301,7 @@ if __name__ == '__main__':
                              dt=dt,
                              v_init=-70,
                              pt3d=True,
+                             extracellular=True,
                              delete_sections=True,
                              verbose=True)
 
@@ -321,7 +322,7 @@ if __name__ == '__main__':
 
     zmin = int(min(cell.zend) / res) - 5
     zmax = int(max(cell.zend) / res) + 5
-    """
+    
     # Generate the grid in xz-plane over
     # which we calculate local field potentials
     X, Y, Z = np.mgrid[1:2, ymin:ymax:1,   zmin:zmax:1] * res
@@ -348,12 +349,12 @@ if __name__ == '__main__':
     # create extracellular electrode object for LFPs on grid
     electrode = LFPy.RecExtElectrode(**electrodeParameters)
 
-    """
+    
     
 
     print("simulating....")
 
-    cell.simulate(rec_imem=True)
+    cell.simulate(rec_imem=True, electrode = electrode)
 
     print("done simulating...")
 

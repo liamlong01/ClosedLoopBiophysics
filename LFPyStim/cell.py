@@ -317,6 +317,7 @@ class Cell(object):
         """
         end addition by Liam Long
         """
+
         # initialize membrane voltage in all segments.
         neuron.h.finitialize(self.v_init)
         self._neuron_tvec = None

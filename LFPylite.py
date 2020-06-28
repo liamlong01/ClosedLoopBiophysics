@@ -319,30 +319,6 @@ class basicsim():
                     seg.es_xtra = -50 * \
                         (-Ex * seg.x_xtra + Ey * seg.y_xtra + Ez * seg.z_xtra) * 1e-3
 
-    def microStim(self, current, x,y,z, sigma):
-        print("calling microstim....", current)
-        count = 0
-        self.hocObj._ref_stim_xtra[0] = 1
-
-        for sec in self.hocObj.allsec():
-         
-            interval = 100
-            if self.hocObj.ismembrane("xtra", sec=sec):
-                for seg in sec:
-                    
-                    
-                    r = np.sqrt((seg.x_xtra - x)**2 + (seg.y_xtra - y)**2 + (seg.z_xtra - z)**2)
-                    if r==0:
-                        r=1e-9
-                    """
-                    if count%interval == 0:
-                        print(seg, "({},{},{}) ".format(x,y,z), "({},{},{}) ".format(seg.x_xtra,seg.y_xtra,seg.z_xtra), "voltage is:", current*1e-3/(4*np.pi*sigma*r))
-                        count = 0
-                    """
-                    seg._ref_es_xtra[0] = current*1e-3/(4*np.pi*sigma*r)
-
-                    count += 1
-                    print( "{} e_extracellular: {}, global stim: {}, es_xtra: {}".format(seg, seg.e_extracellular, self.hocObj("stim_xtra"), seg.es_xtra))
 
     def create_stimuli(self, cell, step_number):
         """Create the stimuli"""

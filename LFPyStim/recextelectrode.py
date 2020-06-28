@@ -216,7 +216,7 @@ class RecExtElectrode(object):
                  x=None, y=None, z=None,
                  N=None, r=None, n=None, contact_shape='circle',
                  perCellLFP=False, method='linesource',
-                 from_file=False, cellfile=None, verbose=False,
+                 from_file=False, cellfile=None, verbose=True,
                  seedvalue=None, **kwargs):
         """Initialize RecExtElectrode class"""
 
@@ -463,6 +463,7 @@ class RecExtElectrode(object):
         """Loop over electrode contacts, and return LFPs across channels"""
 
         for i in range(self.x.size):
+            print("mapping,", i)
             self.mapping[i, :] = self.lfp_method(self.cell,
                                              x = self.x[i],
                                              y = self.y[i],
@@ -504,10 +505,12 @@ class RecExtElectrode(object):
             points = self.probe.get_random_points_inside(self.n)
             for i, p in enumerate(points):
                 #fill in with contact average
+                print("mapping ,", i, "out of, ", len(points))
                 self.mapping[i] = loop_over_points(p)
             self.recorded_points = points
         else:
             for i, (x, y, z) in enumerate(zip(self.x, self.y, self.z)):
+                print("mapping ,", i )
                 self.mapping[i] = self.lfp_method(self.cell,
                                                   x=x,
                                                   y=y,

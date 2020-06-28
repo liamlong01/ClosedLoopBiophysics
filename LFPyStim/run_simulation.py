@@ -20,12 +20,15 @@ import numpy as np
 import neuron
 from pathlib import Path
 
+from LFPyStim import CLStim
+
 
 def _run_simulation(cell, cvode, variable_dt=False, atol=0.001):
     '''
     Running the actual simulation in NEURON, simulations in NEURON
     are now interruptable.
     '''
+    print("BORING SIMuLATION")
     neuron.h.dt = cell.dt
 
     # variable dt method
@@ -62,6 +65,8 @@ def _run_simulation(cell, cvode, variable_dt=False, atol=0.001):
     while neuron.h.t < cell.tstop:
         neuron.h.fadvance()
         counter += 1.
+
+
         if counter % interval == 0:
             rtfactor = (neuron.h.t - ti) * 1E-3 / (time() - t0)
             if cell.verbose:
@@ -75,12 +80,18 @@ def _run_simulation_with_electrode(cell, cvode, electrode=None,
                                    variable_dt=False, atol=0.001,
                                    to_memory=True, to_file=False,
                                    file_name=None, dotprodcoeffs=None,
-                                   rec_current_dipole_moment=False):
+                                   rec_current_dipole_moment=False, stimFunc = None):
     '''
     Running the actual simulation in NEURON.
     electrode argument used to determine coefficient
     matrix, and calculate the LFP on every time step.
     '''
+
+    # TODO: fix SETTING STIMFUNC AS HARDCORDED HACK FOR QUICK TEST PLS FIX LATEr
+    print("WARNING SETTING STIMFUNC AS HARDCORDED HACK FOR QUICK TEST PLS FIX LATEr")
+    print(to_memory)
+    CLS = CLStim.CLStim()
+    stimFunc = CLS.doStim
     try:
         import h5py
     except:
@@ -119,6 +130,7 @@ def _run_simulation_with_electrode(cell, cvode, electrode=None,
             electrodes = [electrode]
 
         for el in electrodes:
+            print("calcing")
             el.calc_mapping(cell)
             dotprodcoeffs.append(el.mapping)
     else:
@@ -224,7 +236,13 @@ def _run_simulation_with_electrode(cell, cvode, electrode=None,
                     if not cvode.active():
                         el_LFP_file['electrode{:03d}'.format(j)][:, tstep] = np.dot(coeffs, imem)
             tstep += 1
+
+        if stimFunc:
+            stimFunc(neuron.h.t, electrode, electrodesLFP[-1], neuron.h) "extracting most recent ldp" 
+
         neuron.h.fadvance()
+        
+
         counter += 1.
         if counter % interval == 0.:
             rtfactor = (neuron.h.t - ti) * 1E-3 / (time() - t0)
