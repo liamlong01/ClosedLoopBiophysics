@@ -32,13 +32,11 @@ class MyelinatedTemplateCell(TemplateCell):
         for sec in neuron.h.allsec():
             if neuron.h.ismembrane("xtra", sec=sec):
                 for x in sec:
-                    x.es_xtra = 1
+                    x.es_xtra = 0
 
 
-        neuron.h._ref_stim_xtra[0] = 1
-        neuron.h.cvode_active(0)
-        neuron.h.finitialize(-65)
-        print("finitialized")
+        neuron.h._ref_stim_xtra[0] = 0
+
 
 
 
