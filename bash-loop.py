@@ -6,6 +6,8 @@ import os
 import pickle
 import pdb
 import aberraAxon # TODO get a better name
+import matplotlib
+matplotlib.use('TkAgg')
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,8 +16,8 @@ from matplotlib.collections import LineCollection
 
 dllfile = 'nrnmech.dll'
 
-home = "D:/OneDrive - University of Toronto/cns/sims"
-results = "E:/results"
+home = "/autofs/fs1.ece/fs1.eecg.roman/longliam/cns/sims/ClosedLoopBiophysics/"
+results = "/autofs/fs1.ece/fs1.eecg.roman/longliam/cns/sims/ClosedLoopBiophysics/results"
 start_T = 0
 end_T = 3000
 dt = 0.025
@@ -280,15 +282,17 @@ if __name__ == '__main__':
 
     templatefile = 'template.hoc'
     templatename = getTemplate(directory='')
-
+    
+    cellClass = LFPy.TemplateCell
     if '-use_axons' in sys.argv:
         print("creating a template file with the original axons kept")
         templatefile = gen_template_withaxon(templatefile)
+        cellClass = LFPy.MyelinatedTemplateCell
 
 
     print("template: {}".format(templatename    ))
 
-    cell = LFPy.MyelinatedTemplateCell(morphology=morphologyfile,
+    cell = cellClass(morphology=morphologyfile,
                              templatefile=templatefile,
                              templatename=templatename,
                              templateargs=0,
@@ -305,8 +309,10 @@ if __name__ == '__main__':
     for sec in cell.somalist:
         somasec = sec
 
-    # stimuli = create_stimuli(somasec, 1)
+    stimuli = create_stimuli(somasec, 3)
     res = 10
+ 
+
 
     xmin = min(cell.xend)
 
@@ -364,10 +370,16 @@ if __name__ == '__main__':
         neurontype = 'axons_' + neurontype
 
     try:
-        cell.cellpickler('cellvoltages' + neurontype)
+        print('file is cellvoltages_' + neurontype)
+        print("oscwd: ", os.getcwd())
+        cell.cellpickler('cellvoltages_' + neurontype +'.results')
     except Exception as e:
         print("Error pickling cell:")
         print(e)
+    
+    plt.plot(cell.somav)
+    plt.title("number 3 -  lfp sim somav")
+    plt.show()
 
     """
     print("pickling electrode..")

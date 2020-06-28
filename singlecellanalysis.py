@@ -3,13 +3,16 @@
 
 import LFPyStim as LFPy
 import numpy as np
+import matplotlib
+matplotlib.use('TkAgg')
+
+
 import matplotlib.pyplot as plt
 import pickle
 
 import sys
 import pdb
 
-import cv2 as cv
 import util
 
 from matplotlib import animation
@@ -100,18 +103,19 @@ def update(frame, spike, shape, im, im2, ln):
 
 
 def animate_spike(spike, shape):
-    
+    print("animate spike")
     fig1 = plt.figure()
     plt.subplot(1,2,1)
+    print("animate spike")
     ax1 = plt.gca()
-
+    print("imshow!!!")
     im = ax1.imshow(spike[:, 0].reshape(shape))
     im.set_clim(np.min(spike.flatten()), np.max(spike.flatten()))
     fig1.colorbar(im, ax=ax1)
    
     plt.subplot(1,2,2)
     ax3 = plt.gca()
-
+    print("imshow!!!")
     im3 = ax3.imshow(spike[:,0].reshape(shape))
     cmax = np.max([np.max(util.csd(x).flatten()) for x in spike])
     cmin = np.min([np.min(util.csd(x).flatten()) for x in spike])
@@ -128,7 +132,7 @@ def animate_spike(spike, shape):
     update_func = lambda frame, spike=spike, shape=shape, im=im, im3=im3, ln=ln: \
                                                update(frame, spike, shape, im, im3, ln)
     
-
+    print("trying animation...")
     # Set up formatting for the movie files
     Writer = animation.writers['ffmpeg']
     writer = Writer(fps=15, metadata=dict(artist='Liam Long'), bitrate=1800)
@@ -142,13 +146,13 @@ def animate_spike(spike, shape):
 
 
 def main():
-    celltoload = "L4_ChC_cNAC187_1"
-    directory = "E:/results/cellvoltages"
+    celltoload = "L4_ChC_cACint209_2.results"
+    directory = "./results/cellvoltages_axons_"
 
     cell = loadcell(celltoload, directory)
 
     electrode, X, Y, Z  = electrode_LFP(cell)
-    print("_________ELCTRODE INFO______________________\nY shape: ")
+    print("_________ELECTRODE INFO______________________\nY shape: ")
     print(Y.shape)
     print(electrode.LFP.shape)
     print("____________________________________________")
@@ -169,7 +173,8 @@ if __name__ == '__main__':
     cellsoma = '-cellsoma' in sys.argv
 
     print(cellsoma)
-
+    
     cell, electrode, spike = main()
-
     debug_plots(cell, electrode, cellsoma=cellsoma, electrodeLFP=electrodeLFP)
+
+    

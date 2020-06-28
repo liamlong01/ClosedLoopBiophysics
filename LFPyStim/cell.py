@@ -254,9 +254,6 @@ class Cell(object):
         self.verbose = True
         if passive:
             self._set_passive()
-            if self.verbose:
-                print('passive properties added')
-                neuron.h.finitialize(-65)
         else: 
             if self.verbose:
                 print('No passive properties added')
@@ -275,6 +272,7 @@ class Cell(object):
                 print("no extracellular mechanism inserted")
 
         #set number of segments accd to rule, and calculate the number
+        
         self._set_nsegs(nsegs_method, lambda_f, d_lambda, max_nsegs_length)
         
         self.totnsegs = self._calc_totnsegs()
@@ -1545,6 +1543,7 @@ class Cell(object):
             filen = open(filename, 'wb')
             pickle.dump(self, filen, protocol=2)
             filen.close()
+            print("pickled", filename)
             return None
         elif pickler==pickle.dumps:
             return pickle.dumps(self)

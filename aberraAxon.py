@@ -36,7 +36,8 @@ import neuron
 
 import numpy as np
 
-
+import matplotlib
+matplotlib.use('TkAgg')
 
 class HocUndefinedError(Exception):
     pass
@@ -1370,7 +1371,7 @@ class MyelinatedCell():
 def main(sim=False):
     celli = MyelinatedCell()
 
-    celli.loadcell(16, myelinate_ax  = True)
+    celli.loadcell('L4_ChC_cACint209_2', myelinate_ax  = True)
 
     
 
@@ -1424,7 +1425,7 @@ def main(sim=False):
     """
     if sim:
 
-        stimuli = create_stimuli(cell, 3)
+        stimuli = create_stimuli(cell, 1)
 
         recordings = {}
 
