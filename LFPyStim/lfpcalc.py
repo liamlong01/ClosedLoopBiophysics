@@ -390,8 +390,9 @@ def calc_lfp_soma_as_point(cell, x, y, z, sigma, r_limit):
     zstart = cell.zstart
     zmid = cell.zmid[somainds]
     zend = cell.zend
-
+    
     deltaS = _deltaS_calc(xstart, xend, ystart, yend, zstart, zend)
+
     h = _h_calc(xstart, xend, ystart, yend, zstart, zend, deltaS, x, y, z)
     r2 = _r2_calc(xend, yend, zend, x, y, z, h)
     r_soma = _r_soma_calc(xmid, ymid, zmid, x, y, z)

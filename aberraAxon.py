@@ -154,7 +154,7 @@ class interpCoordinates():
         self.yList.remove_all()
         self.zList.remove_all()
         
-        for sec in self.caller.hocObj.allsec():
+        for sec in self.caller.cell.all:
          
 
             if self.caller.hocObj.ismembrane("xtra"):
@@ -217,7 +217,7 @@ class interpCoordinates():
         secnum = 0
         self.numComp = 0
 
-        for sec in self.caller.hocObj.allsec():
+        for sec in self.caller.cell.all:
             if self.caller.hocObj.ismembrane("xtra"):
                 self.secrefs.append(self.caller.hocObj.SectionRef())  # SectionRef?????????
                 secnum += 1
@@ -397,7 +397,7 @@ class CellLoader():
         
       
         if loadedtemplate is None:
-            self.caller.hocObj("forall delete_section()")
+            #self.caller.hocObj("forall delete_section()")
             self.get_cell(load_synapses)
         else:
             self.cell = loadedtemplate
@@ -417,7 +417,7 @@ class CellLoader():
         #TODO: fix this cell_id parameter
         print("+++++++++++++++++++++++++")
         print(self.cell)
-        for sec in self.caller.hocObj.allsec():  
+        for sec in self.caller.cell.all:  
              # print("Inserting xtra into {}".format(self.caller.hocObj.secname(sec=sec)))
 
             sec.insert('xtra')
@@ -460,7 +460,7 @@ class CellLoader():
 
     def setupExtracellStim(self):
         numComp = 0 # numComp not needed?
-        for sec in self.caller.hocObj.allsec():
+        for sec in self.caller.cell.all:
            
             sec.insert("xtra")
             sec.insert("extracellular")
@@ -474,11 +474,10 @@ class CellLoader():
     def setpointers(self):
         self.caller.interpCoordinates.getSecRefs() 
         print("setting pointers?")
-        for sec in self.caller.hocObj.allsec():
+        for sec in self.caller.cell.all:
 
 
             if self.caller.hocObj.ismembrane("xtra", sec=sec) and self.caller.hocObj.ismembrane("extracellular", sec=sec):
-                print("pointer", sec)
                 # should be a way to do this without resortin to this ugly str coding but fine for now
                 self.caller.hocObj("for (x,0){ setpointer ex_xtra(x), e_extracellular(x) }")
 
@@ -516,6 +515,9 @@ class CellLoader():
         
         axon_removal_string = '    replace_axon()'
         self.replace_line(template, axontemplate, axon_removal_string, '//' + axon_removal_string)
+
+        removal_string = 'forall delete_section()'
+        self.replace_line(template, axontemplate, removal_string, '//' + removal_string)
    
         return axontemplate
 
@@ -588,17 +590,7 @@ class CellLoader():
         if synapses:
             templatefile = self.gen_synapses(templatefile)
 
-
-        self.caller.hocObj.load_file("stdrun.hoc")
-        self.caller.hocObj.load_file("import3d.hoc")
-
-        print('Loading constants')
-        self.caller.hocObj.load_file('constants.hoc')
-
-        # Load morphology
-        self.caller.hocObj.load_file("morphology.hoc")
-        # Load biophysics 
-        self.caller.hocObj.load_file("biophysics.hoc")
+    
         # Load main cell template
         print(templatefile)
         self.caller.hocObj.load_file(templatefile)
@@ -606,11 +598,16 @@ class CellLoader():
         # Instantiate the cell from the template
         print("Loading cell %s from template file" % templatename)
         template = getattr(self.caller.hocObj, templatename)
-        self.cell = template(int(synapses))
+     
+        self.setCell(template(int(synapses)))
         print("exit2")
 
     def getLoadedTemplate(self, templatename):
-        self.cell = getattr(h, templatename)[0]
+        self.setCell(getattr(h, templatename)[0])
+
+    def setCell(self,toWhat):
+        self.cell = toWhat
+        self.caller.cell = toWhat
 
     def get_main_ax2(self):
         main_ax = self.caller.hocObj.SectionList()
@@ -630,16 +627,16 @@ class CellLoader():
                 current_secref = self.caller.hocObj.SectionRef(sec = current_secref.child[biggest_branch_ind])
             else:
                 at_terminal = 1
-                terminal_sec_str = self.caller.hocObj.String()
-                terminal_sec_str.s = self.caller.hocObj.secname(sec = current_secref.sec)
+            
+                terminal_sec_str = self.caller.hocObj.secname(sec = current_secref.sec)
 
-                current_sec_str = self.caller.hocObj.String()
+      
                 for i in range(self.caller.interpCoordinates.numSect):
-                    current_sec_str.s = self.caller.hocObj.secname(sec = self.caller.interpCoordinates.secrefs[i].sec)
-                    if(current_sec_str.s == terminal_sec_str.s):
+                    current_sec_str = self.caller.hocObj.secname(sec = self.caller.interpCoordinates.secrefs[i].sec)
+                    if(current_sec_str == terminal_sec_str):
                         min_sec_ind = i
                         if self.debug:
-                            print("Terminal section: {}, index: {}\n".format(terminal_sec_str.s,min_sec_ind))
+                            print("Terminal section: {}, index: {}\n".format(terminal_sec_str,min_sec_ind))
         return main_ax
 
 class myelinBiophysics():
@@ -1328,9 +1325,8 @@ class MyelinatedCell():
             self.hocObj = neuron.h
         else:
             self.hocObj = hocObj
+        print("checking current secs")
         
-        
-        self.hocObj.load_file("nrngui.hoc") # TODO remove this dependance
         self.interpCoordinates = interpCoordinates(self)
         
         self.CellLoader = CellLoader(self)
@@ -1346,7 +1342,8 @@ class MyelinatedCell():
         self.hocObj.load_file(0, "anatscale.hoc")
 
     def loadcell(self, celllabel,myelinate_ax = True, loadedtemplate = None, synapses = True):
-       
+        
+
         if loadedtemplate is None:
 
             self.template = self.CellLoader.getTemplate('neurons/' + celllabel + '/')
@@ -1354,13 +1351,16 @@ class MyelinatedCell():
         self.cell = self.CellLoader.cell
 
 
+
+
         self.collect_hocobjects()
 
 
     def collect_hocobjects(self):
         self.sections = self.hocObj.SectionList()
-        for sec in self.hocObj.allsec():
-            self.sections.append(sec=sec)
+        for sec in self.Morphology.axonal:
+            self.cell.all.append(sec=sec)
+            self.cell.axonal.append(sec=sec)
 
 
 
@@ -1382,10 +1382,10 @@ def main(sim=False):
 
     """
     stim_mode = 1 # 1 - ICMS, 2 - uniform E-field 
-    xe = 200 # µm electrode default position
-    ye = -50 # µm
-    ze = 0  # µm 
-    sigma_e = 2.76e-7 # S/µm - conductivity in GM (Bungert 2016)
+    xe = 200 # um electrode default position
+    ye = -50 # um
+    ze = 0  # um 
+    sigma_e = 2.76e-7 # S/ubashm - conductivity in GM (Bungert 2016)
    
     # uniform E field stimulation
     theta = 180 # deg - polar angle

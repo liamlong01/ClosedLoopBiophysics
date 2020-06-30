@@ -448,6 +448,7 @@ class Cell(object):
         """Create section lists for different kinds of sections"""
         #list with all sections
         self.allsecnames = []
+        print("calling base class create sectionlists")
         if not isinstance(self.morphology, type(neuron.h.SectionList)):
             self.allseclist = neuron.h.SectionList()
             for sec in neuron.h.allsec():
@@ -1593,10 +1594,10 @@ class Cell(object):
 
                 self._real_positions(rel_start, rel_end)
                 if self.verbose:
-                    print('Rotated geometry %g radians around x-axis' % (-theta))
+                    pass# print('Rotated geometry %g radians around x-axis' % (-theta))
             else:
                 if self.verbose:
-                    print('Geometry not rotated around x-axis')
+                    pass#print('Geometry not rotated around x-axis')
 
             if ax == 'y' and y is not None:
                 phi = -y
@@ -1611,10 +1612,10 @@ class Cell(object):
 
                 self._real_positions(rel_start, rel_end)
                 if self.verbose:
-                    print('Rotated geometry %g radians around y-axis' % (-phi))
+                    pass#print('Rotated geometry %g radians around y-axis' % (-phi))
             else:
                 if self.verbose:
-                    print('Geometry not rotated around y-axis')
+                    pass#print('Geometry not rotated around y-axis')
 
             if ax == 'z' and z is not None:
                 gamma = -z
@@ -1629,10 +1630,10 @@ class Cell(object):
 
                 self._real_positions(rel_start, rel_end)
                 if self.verbose:
-                    print('Rotated geometry %g radians around z-axis' % (-gamma))
+                    pass#print('Rotated geometry %g radians around z-axis' % (-gamma))
             else:
                 if self.verbose:
-                    print('Geometry not rotated around z-axis')
+                    pass#print('Geometry not rotated around z-axis')
 
         #rotate the pt3d geometry accordingly
         if self.pt3d and hasattr(self, 'x3d'):
@@ -1957,10 +1958,10 @@ class Cell(object):
                     self.x3d[i], self.y3d[i], self.z3d[i] = \
                                                 self._real_pt3d_positions(rel_pos)
                 if self.verbose:
-                    print(('Rotated geometry %g radians around x-axis' % (-theta)))
+                    pass# print(('Rotated geometry %g radians around x-axis' % (-theta)))
             else:
                 if self.verbose:
-                    print('Geometry not rotated around x-axis')
+                    pass # print('Geometry not rotated around x-axis')
 
             if ax == 'y' and y is not None:
                 phi = -y
@@ -1976,10 +1977,10 @@ class Cell(object):
                     self.x3d[i], self.y3d[i], self.z3d[i] = \
                                                 self._real_pt3d_positions(rel_pos)
                 if self.verbose:
-                    print('Rotated geometry %g radians around y-axis' % (-phi))
+                    pass # print('Rotated geometry %g radians around y-axis' % (-phi))
             else:
                 if self.verbose:
-                    print('Geometry not rotated around y-axis')
+                    pass # print('Geometry not rotated around y-axis')
 
             if ax == 'z' and z is not None:
                 gamma = -z
@@ -1995,10 +1996,10 @@ class Cell(object):
                     self.x3d[i], self.y3d[i], self.z3d[i] = \
                                                 self._real_pt3d_positions(rel_pos)
                 if self.verbose:
-                    print('Rotated geometry %g radians around z-axis' % (-gamma))
+                    pass#print('Rotated geometry %g radians around z-axis' % (-gamma))
             else:
                 if self.verbose:
-                    print('Geometry not rotated around z-axis')
+                    pass#print('Geometry not rotated around z-axis')
         self._update_pt3d()
 
     def _rel_pt3d_positions(self, x, y, z):

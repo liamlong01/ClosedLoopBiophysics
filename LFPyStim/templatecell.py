@@ -216,7 +216,7 @@ class TemplateCell(Cell):
 
     def _create_sectionlists(self):
         """Create section lists for different kinds of sections"""
-        
+    
         self.allsecnames = []
         for sec in self.template.all:
             self.allsecnames.append(sec.name())
@@ -227,8 +227,13 @@ class TemplateCell(Cell):
         self.nsomasec = 0
         self.somalist = neuron.h.SectionList()
         for sec in self.allseclist:
+          
             if 'soma' in sec.name():
+               
                 self.somalist.append(sec=sec)
                 self.nsomasec += 1
+
+        for sec in self.somalist:
+        	print(sec)
      
 

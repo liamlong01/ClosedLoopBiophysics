@@ -235,10 +235,12 @@ def _run_simulation_with_electrode(cell, cvode, electrode=None,
                 for j, coeffs in enumerate(dotprodcoeffs):
                     if not cvode.active():
                         el_LFP_file['electrode{:03d}'.format(j)][:, tstep] = np.dot(coeffs, imem)
-            tstep += 1
+          
 
-        if stimFunc:
-            stimFunc(neuron.h.t, electrode, electrodesLFP[-1], neuron.h) "extracting most recent ldp" 
+            if stimFunc:
+                stimtime = neuron.h.t/1000 # convert units to s
+                stimFunc(stimtime, electrode, electrodesLFP[-1][:,tstep], neuron.h) # extracting most recent ldp"
+            tstep += 1
 
         neuron.h.fadvance()
         

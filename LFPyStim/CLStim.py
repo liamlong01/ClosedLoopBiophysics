@@ -3,14 +3,13 @@ import matplotlib.pyplot as plt
 
 import util
 
-import pdb
 
 
 class CLStim():
     sigma = 0.3
     current = 100e-6
 
-    def __init__(self,  verbose = True, label="Unlabeled CLStim"):
+    def __init__(self,  verbose = False, label="Unlabeled CLStim"):
         """
         network is a collection of NetworkCells
         """
@@ -30,39 +29,35 @@ class CLStim():
 
     def doStim(self, time, electrode, LFPs, hocObj):
         
-        if self.verbose:
-            pdb.set_trace()
-            print("CLSTIM received LFP with shape:", LFPs.shape)
 
 
         LFPs = self.addNoise(LFPs)
         self.trigger = 1
-        if self.time > 20e-3:
-            self.biphasicpulse()
+        if time > 20e-3:
+            self.biphasicpulse(time)
 
         if np.max(LFPs) > 0.01 and not self.stimming:
             self.plot(LFPs)
 
         self.currents = np.append(self.currents, self.current)
-        print(self.time, "s, current setting:",
-              self.current, "maxlfp", np.max(LFPs))
 
-        microStim(self.current, 0, 0, 0, 0.3, hocObj)
 
-    def biphasicpulse(self):
+        microStim(self.current, 200e-6, -50e-6, 0, 0.3, hocObj)
+
+    def biphasicpulse(self, time):
         if not self.stimming:
             if self.trigger:
                 self.stimming = True
-                self.start = self.time
+                self.start = time
 
         else:
-            if self.time - self.start < 100e-6:
+            if time - self.start < 100e-6:
                 self.current = 100e-6
 
-            elif self.time - self.start < 200e-6:
+            elif time - self.start < 200e-6:
                 self.current = -100e-6
 
-            elif self.time - self.start < 1e-3:
+            elif time - self.start < 10e-3:
                 self.current = 0
 
             else:
@@ -125,7 +120,7 @@ class CLStim():
 
         Apad = l * w
 
-        # tdouble from:
+        # as in original paper tdouble is from:
         # Y. Burak, D. Andelman Hydration interactions: aqueous solvent effects in
         # electric double layers Phys. Rev. E, 62 (2000), pp. 5295-5312
         t_double = 0.3e-9
@@ -148,7 +143,12 @@ class CLStim():
 
 
 def microStim(current, x, y, z, sigma, hocObj):
-    print("calling microstim....", current)
+    """
+    current in units of A
+    x,y,z, in units of m
+    sigma in S/m
+
+    """
     count = 0
     hocObj._ref_stim_xtra[0] = 1
 
@@ -167,8 +167,7 @@ def microStim(current, x, y, z, sigma, hocObj):
                     print(seg, "({},{},{}) ".format(x,y,z), "({},{},{}) ".format(seg.x_xtra,seg.y_xtra,seg.z_xtra), "voltage is:", current*1e-3/(4*np.pi*sigma*r))
                     count = 0
                 """
-                seg._ref_es_xtra[0] = current * 1e-3 / (4 * np.pi * sigma * r)
+                seg._ref_es_xtra[0] = current  / (4 * np.pi * sigma * r) * 1000 # A/(s/m*m) = A/S = V, convert to mV ?
 
                 count += 1
-                print("{} e_extracellular: {}, global stim: {}, es_xtra: {}".format(
-                    seg, seg.e_extracellular, hocObj("stim_xtra"), seg.es_xtra))
+           

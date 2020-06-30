@@ -7,6 +7,7 @@ import pdb
 import aberraAxon # TODO get a better name
 import matplotlib
 matplotlib.use('TkAgg')
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -180,8 +181,8 @@ def create_stimuli(sec, step_number):
         hyp_amp, step_amp[0], step_amp[1], step_amp[2] = first_line.split(' ')
 
     iclamp = neuron.h.IClamp(0.5, sec=sec)
-    iclamp.delay = 10
-    iclamp.dur = 80
+    iclamp.delay = 50
+    iclamp.dur = 200
     iclamp.amp = float(step_amp[step_number - 1])
     print('Setting up step current clamp: '
           'amp=%f nA, delay=%f ms, duration=%f ms' %
@@ -191,7 +192,7 @@ def create_stimuli(sec, step_number):
 
     hyp_iclamp = neuron.h.IClamp(0.5, sec=sec)
     hyp_iclamp.delay = 0
-    hyp_iclamp.dur = 100
+    hyp_iclamp.dur = 300
     hyp_iclamp.amp = float(hyp_amp)
     print('Setting up hypamp current clamp: '
           'amp=%f nA, delay=%f ms, duration=%f ms' %
@@ -290,62 +291,36 @@ if __name__ == '__main__':
 
     print("template: {}".format(templatename    ))
 
-    cellParameters  = dict(morphology=morphologyfile,
+    cell = cellClass(morphology=morphologyfile,
                              templatefile=templatefile,
                              templatename=templatename,
-                             templateargs=1,
+                             templateargs=0,
                              tstop=end_T,
                              tstart=start_T,
                              dt=dt,
                              v_init=-70,
                              pt3d=True,
                              extracellular=True,
-                             delete_sections=False,
-                             verbose=True,
-                             myelinate=True)
+                             delete_sections=True,
+                             verbose=True)
 
-
-    # class NetworkPopulation parameters:
-    populationParameters = pop_args=dict(radius=100.,
-                                        loc=0.,
-                                        scale=20.)
-                                
-                             
     
-    if not "-pop" in sys.argv:
-        cell = cellClass(**cellParameters)
-        cells = [cell]
-        simulator = cell
-        print("LFPy cell ready ")
-       
-    else:
-        simulator = LFPy.Network(dt=dt, tstop = end_T, tstart = start_T, v_init = -70)
-        simulator.create_population(cell_args = cellParameters , name = "funpop", pop_args    = populationParameters, rotation_args=dict(x=0., y=0.),)
+    print("LFPy cell ready ")
+    for sec in cell.somalist:
+        somasec = sec
 
-        cell = simulator.populations["funpop"].cells[0]
-        cells = simulator.populations["funpop"].cells
-    i=0  
-    for cell in cells:
-        print(cell)
-        for sec in cell.allseclist:
-            print(sec)
-        for sec in cell.somalist:
-                somasec = sec
-
-
-                stimuli = create_stimuli(somasec, i)
-                i=i+1
+    # stimuli = create_stimuli(somasec, 3)
     res = 10
  
 
 
     xmin = min(cell.xend)
+
     ymin = int(min(cell.yend) / res) - 5
     ymax = int(max(cell.yend) / res) + 5
 
     zmin = int(min(cell.zend) / res) - 5
     zmax = int(max(cell.zend) / res) + 5
-    print(xmin,ymin,zmin,ymax,zmax)
     
     # Generate the grid in xz-plane over
     # which we calculate local field potentials
@@ -378,7 +353,7 @@ if __name__ == '__main__':
 
     print("simulating....")
 
-    simulator.simulate(rec_imem=True, electrode = electrode)
+    cell.simulate(rec_imem=True, electrode = electrode)
 
     print("done simulating...")
 
@@ -401,10 +376,8 @@ if __name__ == '__main__':
     except Exception as e:
         print("Error pickling cell:")
         print(e)
-    for cell in cells:
-        for sec in cell.allseclist:
-            print(sec)
-        plt.plot(cell.somav)
+    
+    plt.plot(cell.somav)
     plt.title("number 3 -  lfp sim somav")
     plt.show()
 
@@ -431,4 +404,4 @@ if __name__ == '__main__':
 
     # plt.plot(cell.tvec, electrode.LFP[100])
     # plt.show()
-    
+

@@ -3,6 +3,7 @@
 """Defines classes and methods used by example_parallel_network.py script
 
 Copyright (C) 2012 Computational Neuroscience Group, NMBU.
+
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -21,10 +22,8 @@ import scipy.stats as stats
 import h5py
 from mpi4py import MPI
 import neuron
-from . MyelinatedTemplateCell import MyelinatedTemplateCell
+from .templatecell import TemplateCell
 import scipy.sparse as ss
-
-from LFPyStim import CLStim
 
 # set up MPI environment
 COMM = MPI.COMM_WORLD
@@ -41,7 +40,7 @@ flattenlist = lambda lst: [item for sublist in lst for item in sublist]
 # allows for connecting to a synapse on a target cell. All other methods and
 # attributes are inherited from the standard LFPy.TemplateCell class
 ################################################################################
-class NetworkCell(MyelinatedTemplateCell):
+class NetworkCell(TemplateCell):
     """
     class NetworkCell
 
@@ -136,7 +135,7 @@ class NetworkCell(MyelinatedTemplateCell):
         Initialization of class LFPy.NetworkCell.
 
         """
-        MyelinatedTemplateCell.__init__(self, **args)
+        TemplateCell.__init__(self, **args)
 
         # create list netconlist for spike detecting NetCon object(s)
         self.sd_netconlist = neuron.h.List()
@@ -231,9 +230,7 @@ class NetworkCell(MyelinatedTemplateCell):
         """
         # create new NetCon objects for the connections. Activation times will
         # be triggered on the somatic voltage with a given threshold.
-        print(self.somalist )
         for sec in self.somalist:
-            print(sec)
             self.sd_netconlist.append(neuron.h.NetCon(sec(0.5)._ref_v,
                                                 target,
                                                 sec=sec))
@@ -366,10 +363,7 @@ class NetworkPopulation(object):
             self.cells = [Cell(**cell_args) for gid in self.gids]
             os.chdir(CWD)
         else:
-            self.cells = []
-            for gid in self.gids:
-                self.cells.append(Cell(**cell_args))
-           
+            self.cells = [Cell(**cell_args) for gid in self.gids]
         # position each cell's soma in space
         self.soma_pos = self.draw_rand_pos(POP_SIZE=len(self.gids), **pop_args)
         for i, cell in enumerate(self.cells):
@@ -598,7 +592,7 @@ class Network(object):
                                 cell_args=cell_args, pop_args=pop_args,
                                 rotation_args=rotation_args,
                                 OUTPUTPATH=self.OUTPUTPATH)
-  
+
         # associate gids of cells on this RANK such that NEURON can look up
         # at which RANK different cells are created when connecting the network
         for gid in population.gids:
@@ -610,7 +604,6 @@ class Network(object):
             # target to cell gid
             cell.create_spike_detector(None)
             # assosiate cell gid with the NetCon source
-            
             self.pc.cell(gid, cell.sd_netconlist[-1])
 
             # record spike events
@@ -1192,8 +1185,7 @@ def _run_simulation(network, cvode, variable_dt=False, atol=0.001):
             cell._loadspikes()
 
     while neuron.h.t < network.tstop:
-        neuron.h.fadvance() 
-
+        neuron.h.fadvance()
         if neuron.h.t % 100 == 0:
             if RANK == 0:
                 print('t = {} ms'.format(neuron.h.t))
@@ -1276,16 +1268,6 @@ def _run_simulation_with_electrode(network, cvode,
         current-dipole moment summed up over contributions from cells across
         all populations on this MPI RANK.
     """
-
-
-    # TODO: fix SETTING STIMFUNC AS HARDCORDED HACK FOR QUICK TEST PLS FIX LATEr
-    print("WARNING SETTING STIMFUNC AS HARDCORDED HACK FOR QUICK TEST PLS FIX LATEr")
-    print(to_memory)
-    CLS = CLStim.CLStim()
-    stimFunc = CLS.doStim
-
-
-
     # create a dummycell object lumping together needed attributes
     # for calculation of extracellular potentials etc. The population_nsegs
     # array is used to slice indices such that single-population
@@ -1517,10 +1499,6 @@ def _run_simulation_with_electrode(network, cvode,
                             outputfile['OUTPUT[{}]'.format(j)
                                        ][name][:, tstep] = np.dot(coeffs[:, cellinds], imem['imem'][cellinds, ])
                             k += nsegs
-
-            if stimFunc:
-                stimtime = neuron.h.t/1000 # convert units to s
-                stimFunc(stimtime, electrode, RESULTS[-1]['imem'][:,tstep], neuron.h) # extracting most recent lfp"
 
             tstep += 1
         neuron.h.fadvance()

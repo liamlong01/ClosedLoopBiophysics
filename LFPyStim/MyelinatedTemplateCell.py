@@ -8,11 +8,13 @@ import neuron
 
 class MyelinatedTemplateCell(TemplateCell):
 
-    def __init__(self, templatefile='LFPyCellTemplate.hoc',
+    def __init__(self, myelinate = True, templatefile='LFPyCellTemplate.hoc',
                  templatename='LFPyCellTemplate',
                  templateargs=None,
                  verbose=True,
                  **kwargs):
+
+        self.myelinate  = myelinate 
 
         TemplateCell.__init__(self,
                  templatefile=templatefile,
@@ -21,19 +23,23 @@ class MyelinatedTemplateCell(TemplateCell):
                  verbose=verbose,
                  **kwargs)
 
+
     def add_axons(self):
+      
         myelinater = aberraAxon.MyelinatedCell(hocObj = neuron.h)
         
 
-        myelinater.loadcell(self.templatename, myelinate_ax=True,  synapses = False)
+        myelinater.loadcell(self.templatename, myelinate_ax=self.myelinate,  synapses = False)
         
         self.template = myelinater.cell
 
-        for sec in neuron.h.allsec():
-            if neuron.h.ismembrane("xtra", sec=sec):
-                for x in sec:
-                    x.es_xtra = 0
+        
 
+        
+        for sec in neuron.h.allsec():
+                if neuron.h.ismembrane("xtra", sec=sec):
+                    for x in sec:
+                        x.es_xtra = 0
 
         neuron.h._ref_stim_xtra[0] = 0
 
@@ -50,8 +56,11 @@ class MyelinatedTemplateCell(TemplateCell):
             neuron.h('sec_counted = 0')
 
         # the python cell object we are loading the morphology into:
-       
-        self.add_axons()
+        if self.myelinate:
+            self.add_axons()
+        #the python cell object we are loading the morphology into:
+        else:
+            self.template = getattr(neuron.h, self.templatename)(self.templateargs)
 
         # perform a test if the morphology is already loaded:
         seccount = 0
