@@ -182,9 +182,9 @@ def main():
     return cell, electrode, spike
 
 def main2():
-    lfp = np.load("/autofs/fs1.ece/fs1.eecg.roman/longliam/cns/sims/ClosedLoopBiophysics/results/lfp.npy")
+    lfp = np.load("results/lfp.npy")
     print(lfp['imem'][0])
-    geom = np.load("/autofs/fs1.ece/fs1.eecg.roman/longliam/cns/sims/ClosedLoopBiophysics/results/geom.npy")
+    geom = np.load("results/geom.npy")
     X = geom[0]
     Y = geom[1]
     Z = geom[2]

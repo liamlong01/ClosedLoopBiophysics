@@ -18,13 +18,26 @@ def wrap_kcsd(k, lfp, h=50, sigma=0.3):
     """
     reference: https://github.com/Neuroinflab/kCSD-python
     """
+    print("running wrap_kcsd")
    
     lfp_tmp = lfp.reshape(len(lfp.flatten()), 1)
     #pdb.set_trace()
 
     k.pots = lfp_tmp
-    
-    return k.values('CSD')[:,:,0]
+
+    csd = k.values('CSD')[:,:,0]
+    try:
+
+        cols = np.any(np.round(csd,decimals=12), axis=0)
+        csd = csd[:,cols]
+
+        rows = np.any(np.round(csd,decimals=12), axis=1)
+        csd = csd[rows,:]
+    except IndexError as e:
+        print(e)
+        pdb.set_trace()
+
+    return csd
 
 
 def addNoise(matrix):
