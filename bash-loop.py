@@ -12,12 +12,14 @@ import numpy as np
 
 from matplotlib.collections import LineCollection
 
+import singlecellanalysis
+
 dllfile = 'nrnmech.dll'
 
 home = "/autofs/fs1.ece/fs1.eecg.roman/longliam/cns/sims/ClosedLoopBiophysics/"
 results = "/autofs/fs1.ece/fs1.eecg.roman/longliam/cns/sims/ClosedLoopBiophysics/results"
 start_T = 0
-end_T = 100
+end_T = 500
 dt = 0.025 # .025 ms sampling = 40kHz
 
 
@@ -179,10 +181,12 @@ def create_stimuli(sec, step_number):
         first_line = current_amps_file.read().split('\n')[0].strip()
         hyp_amp, step_amp[0], step_amp[1], step_amp[2] = first_line.split(' ')
 
+    step_amp = [0.1633, 0.176, 0.189792, 0.2]
+
     iclamp = neuron.h.IClamp(0.5, sec=sec)
     iclamp.delay = 10
-    iclamp.dur = 80
-    iclamp.amp = float(step_amp[step_number - 1])
+    iclamp.dur = 300
+    iclamp.amp = float(step_amp[step_number])
     print('Setting up step current clamp: '
           'amp=%f nA, delay=%f ms, duration=%f ms' %
           (iclamp.amp, iclamp.delay, iclamp.dur))
@@ -191,7 +195,7 @@ def create_stimuli(sec, step_number):
 
     hyp_iclamp = neuron.h.IClamp(0.5, sec=sec)
     hyp_iclamp.delay = 0
-    hyp_iclamp.dur = 100
+    hyp_iclamp.dur = 3000
     hyp_iclamp.amp = float(hyp_amp)
     print('Setting up hypamp current clamp: '
           'amp=%f nA, delay=%f ms, duration=%f ms' %
@@ -321,22 +325,28 @@ if __name__ == '__main__':
     else:
         simulator = LFPy.Network(dt=dt, tstop = end_T, tstart = start_T, v_init = -70)
         simulator.create_population(cell_args = cellParameters , name = "funpop", pop_args    = populationParameters, rotation_args=dict(x=0., y=0.),)
-
+        """
+        os.chdir(cwd)
+        os.chdir('neurons/L23_PC_cADpyr229_2')
+        cellParameters['templatename'] = getTemplate(directory='')
+        cellParameters['morphology'] = 'morphology/' + os.listdir('morphology')[0]  # glob('morphology\\*')[0]
+        simulator.create_population(cell_args = cellParameters , name = "funpop2", pop_args    = populationParameters, rotation_args=dict(x=0., y=0.),)
+    
+        """
         cell = simulator.populations["funpop"].cells[0]
         cells = simulator.populations["funpop"].cells
     i=0  
+    stimuli = []
     for cell in cells:
         print(cell)
-        for sec in cell.allseclist:
-            print(sec)
         for sec in cell.somalist:
                 somasec = sec
+                print(somasec)
 
+        #stimuli.append(create_stimuli(somasec, i))
+        i=i+1
 
-                stimuli = create_stimuli(somasec, i)
-                i=i+1
-    res = 10
- 
+    res = 50
 
 
     xmin = min(cell.xend)
@@ -345,8 +355,7 @@ if __name__ == '__main__':
 
     zmin = int(min(cell.zend) / res) - 5
     zmax = int(max(cell.zend) / res) + 5
-    print(xmin,ymin,zmin,ymax,zmax)
-    
+
     # Generate the grid in xz-plane over
     # which we calculate local field potentials
     X, Y, Z = np.mgrid[1:2, ymin:ymax:1,   zmin:zmax:1] * res
@@ -378,7 +387,7 @@ if __name__ == '__main__':
 
     print("simulating....")
 
-    simulator.simulate(rec_imem=True, electrode = electrode)
+    x, Lfp, something = simulator.simulate(rec_imem=True, electrode = electrode)
 
     print("done simulating...")
 
@@ -398,15 +407,22 @@ if __name__ == '__main__':
         print('file is cellvoltages_' + neurontype)
         print("oscwd: ", os.getcwd())
         cell.cellpickler('cellvoltages_' + neurontype +'_2.results')
+        print(Lfp)
+        np.save('lfp.npy', Lfp)
+        np.save('geom.npy', np.array([X,Y,Z]))
     except Exception as e:
         print("Error pickling cell:")
         print(e)
+    i=0
     for cell in cells:
-        for sec in cell.allseclist:
-            print(sec)
-        plt.plot(cell.somav)
+        print(cell)
+        plt.plot(cell.somav+i)
+        i+=1
     plt.title("number 3 -  lfp sim somav")
     plt.show()
+
+
+    singlecellanalysis.fromlfp(Lfp[0],X,Y,Z)
 
     """
     print("pickling electrode..")

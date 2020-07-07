@@ -33,7 +33,7 @@ class CLStim():
 
         LFPs = self.addNoise(LFPs)
         self.trigger = 1
-        if time > 20e-3:
+        if time > 150e-3:
             self.biphasicpulse(time)
 
         if np.max(LFPs) > 0.01 and not self.stimming:
@@ -52,12 +52,12 @@ class CLStim():
 
         else:
             if time - self.start < 100e-6:
-                self.current = 100e-6
+                self.current = 50e-6
 
             elif time - self.start < 200e-6:
-                self.current = -100e-6
+                self.current = -50e-6
 
-            elif time - self.start < 10e-3:
+            elif time - self.start < 100e-3:
                 self.current = 0
 
             else:

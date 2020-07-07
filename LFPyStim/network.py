@@ -372,6 +372,7 @@ class NetworkPopulation(object):
            
         # position each cell's soma in space
         self.soma_pos = self.draw_rand_pos(POP_SIZE=len(self.gids), **pop_args)
+        print(self.soma_pos)
         for i, cell in enumerate(self.cells):
             cell.set_pos(**self.soma_pos[i])
 
@@ -1332,6 +1333,7 @@ def _run_simulation_with_electrode(network, cvode,
             dotprodcoeffs += [el.mapping]
             # del el.LFP
             del el.mapping
+        print(dotprodcoeffs)
 
     elif electrode is None:
         electrodes = None
@@ -1519,7 +1521,7 @@ def _run_simulation_with_electrode(network, cvode,
                             k += nsegs
 
             if stimFunc:
-                stimtime = neuron.h.t/1000 # convert units to s
+                stimtime = neuron.h.t/1000 # convert units from ms to s
                 stimFunc(stimtime, electrode, RESULTS[-1]['imem'][:,tstep], neuron.h) # extracting most recent lfp"
 
             tstep += 1

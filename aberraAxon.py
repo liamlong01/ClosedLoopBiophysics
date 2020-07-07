@@ -1270,8 +1270,6 @@ class Morphology():
             xn = x.x[1] + len * xu / r
             yn = y.x[1] + len * yu / r
             zn = z.x[1] + len * zu / r 
- 
-
 
         self.caller.hocObj.pt3dadd(xn, yn, zn, diams.x[i1], sec=sec)
         if dir == 1:
@@ -1319,6 +1317,8 @@ class Morphology():
 
 class MyelinatedCell():
 
+    cellsCreated = 0
+
     def __init__(self, hocObj=None):
 
         if hocObj is None:
@@ -1335,7 +1335,6 @@ class MyelinatedCell():
         
         self.templatename   = None
         #createpanels()
-
         self.soma_point3 = objref("soma_point3", hocObj = self.hocObj)
 
     def color_plotmax(self, plot_mode = 1, save_fig = 0):
@@ -1349,11 +1348,11 @@ class MyelinatedCell():
             self.template = self.CellLoader.getTemplate('neurons/' + celllabel + '/')
         self.CellLoader.cell_chooser(celllabel, myelinate_ax=myelinate_ax, load_synapses=synapses, loadedtemplate  = loadedtemplate )
         self.cell = self.CellLoader.cell
-
-
+        MyelinatedCell.cellsCreated += 1
 
 
         self.collect_hocobjects()
+        print("objcollected")
 
 
     def collect_hocobjects(self):
@@ -1369,9 +1368,33 @@ class MyelinatedCell():
 
 
 def main(sim=False):
+    neuron = 'L23_PC_cADpyr229_1'
+    neuronfolder = 'neurons/' + neuron + '/'
+
+
+
+    cwd = os.getcwd()
+    os.chdir(neuronfolder)
+    neuron.h.load_file("stdrun.hoc")
+    neuron.h.load_file("import3d.hoc")
+
+
+    neuron.h.load_file('stdlib.hoc')    #NEURON std. library
+    neuron.h.load_file('import3d.hoc')  #import 3D morphology lib
+
+    print('Loading constants')
+    neuron.h.load_file('constants.hoc')
+
+    neuron.h.load_file(1, "morphology.hoc")
+    neuron.h.load_file(1, "biophysics.hoc")
+
+    print('Loading constants')
+    #neuron.h.load_file(1, 'template.hoc')
+    neuron.h.load_file('synapses/synapses.hoc')
+
     celli = MyelinatedCell()
 
-    celli.loadcell('L4_ChC_cACint209_2', myelinate_ax  = True)
+    celli.loadcell(neuron, myelinate_ax  = True, synapses=False)
 
     
 

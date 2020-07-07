@@ -1,5 +1,3 @@
-
-
 from LFPyStim import TemplateCell
 import aberraAxon
 
@@ -25,14 +23,20 @@ class MyelinatedTemplateCell(TemplateCell):
 
 
     def add_axons(self):
-      
+        synapses = self.templateargs
         myelinater = aberraAxon.MyelinatedCell(hocObj = neuron.h)
         
 
-        myelinater.loadcell(self.templatename, myelinate_ax=self.myelinate,  synapses = False)
+        myelinater.loadcell(self.templatename, myelinate_ax=self.myelinate,  synapses = synapses)
         
         self.template = myelinater.cell
+            
+        if synapses:
+            for i in range(55): #TODO: paramaterize these synapse indices to make sure we know what we initialize
+                    self.template.synapses.active_pre_mtypes.x[i] = 1
+                
 
+            self.template.synapses.update_synapses(neuron.h.Shape()) # not sure why shape is needed
         
 
         
@@ -42,8 +46,6 @@ class MyelinatedTemplateCell(TemplateCell):
                         x.es_xtra = 0
 
         neuron.h._ref_stim_xtra[0] = 0
-
-
 
 
     def _load_geometry(self):
